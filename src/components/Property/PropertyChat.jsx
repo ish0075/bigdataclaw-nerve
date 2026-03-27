@@ -145,6 +145,7 @@ const PropertyChat = ({ onFormUpdate, formData, onSubmit }) => {
     if (!text.trim()) return
 
     const userMessage = text.trim()
+    const lower = userMessage.toLowerCase()
     setInputText('')
     addMessage('user', userMessage)
     setIsLoading(true)
