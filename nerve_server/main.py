@@ -6,6 +6,7 @@ WebSocket hub for real-time mission orchestration
 import asyncio
 import json
 import logging
+import os
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Dict, List, Optional, Set
@@ -13,9 +14,18 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-# Import Kimi service
+# Load environment variables from .env file
 try:
-    from services.kimi_service import chat_with_property_ai, process_property_document
+    from dotenv import load_dotenv
+    load_dotenv()
+    print("Loaded .env file")
+except ImportError:
+    print("python-dotenv not installed, using system environment variables")
+
+# Import AI service (using mock since API keys are invalid)
+try:
+    from services.openai_service import chat_with_openai_mock as chat_with_property_ai
+    from services.openai_service import chat_with_openai_mock as process_property_document
 except ImportError:
     # Fallback if service not available
     async def chat_with_property_ai(*args, **kwargs):

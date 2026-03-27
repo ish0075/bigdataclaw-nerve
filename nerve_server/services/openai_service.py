@@ -1,5 +1,5 @@
 """
-Kimi (Moonshot AI) Integration Service for BigDataClaw NERVE
+OpenAI Integration Service for BigDataClaw NERVE
 """
 
 import os
@@ -8,24 +8,9 @@ import httpx
 from typing import Dict, List, Optional
 from fastapi import HTTPException
 
-# Try to load from .env file if KIMI_API_KEY not in environment
-def load_env_file():
-    env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
-    if os.path.exists(env_path):
-        with open(env_path, 'r') as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith('#') and '=' in line:
-                    key, value = line.split('=', 1)
-                    if key not in os.environ:
-                        os.environ[key] = value
-
-load_env_file()
-
-KIMI_API_KEY = os.getenv("KIMI_API_KEY")
-print(f"KIMI_API_KEY loaded: {'Yes' if KIMI_API_KEY else 'No'}")
-KIMI_API_URL = "https://api.moonshot.cn/v1/chat/completions"
-KIMI_MODEL = "moonshot-v1-8k"  # Options: moonshot-v1-8k, moonshot-v1-32k, moonshot-v1-128k
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
+OPENAI_MODEL = "gpt-4o-mini"  # Fast and cost-effective
 
 
 SYSTEM_PROMPT = """You are a Commercial Real Estate (CRE) research assistant for BigDataClaw NERVE.
@@ -79,19 +64,12 @@ Example response:
 """
 
 
-async def chat_with_kimi(user_message: str, conversation_history: List[Dict] = None) -> Dict:
+async def chat_with_openai(user_message: str, conversation_history: List[Dict] = None) -> Dict:
     """
-    Send a message to Kimi AI and get structured property data back
-    
-    Args:
-        user_message: The user's input message
-        conversation_history: Optional list of previous messages for context
-        
-    Returns:
-        Dict with response text, extracted data, and action
+    Send a message to OpenAI and get structured property data back
     """
-    if not KIMI_API_KEY:
-        raise HTTPException(status_code=500, detail="KIMI_API_KEY not configured")
+    if not OPENAI_API_KEY:
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not configured")
     
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     
@@ -103,16 +81,17 @@ async def chat_with_kimi(user_message: str, conversation_history: List[Dict] = N
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(
-                KIMI_API_URL,
+                OPENAI_API_URL,
                 headers={
-                    "Authorization": f"Bearer {KIMI_API_KEY}",
+                    "Authorization": f"Bearer {OPENAI_API_KEY}",
                     "Content-Type": "application/json"
                 },
                 json={
-                    "model": KIMI_MODEL,
+                    "model": OPENAI_MODEL,
                     "messages": messages,
-                    "temperature": 0.3,  # Lower for more consistent extractions
-                    "max_tokens": 1000
+                    "temperature": 0.3,
+                    "max_tokens": 1000,
+                    "response_format": {"type": "json_object"}
                 },
                 timeout=30.0
             )
@@ -123,7 +102,7 @@ async def chat_with_kimi(user_message: str, conversation_history: List[Dict] = N
             # Parse the AI response
             ai_content = data["choices"][0]["message"]["content"]
             
-            # Try to parse as JSON
+            # Parse as JSON
             try:
                 result = json.loads(ai_content)
                 return {
@@ -142,24 +121,17 @@ async def chat_with_kimi(user_message: str, conversation_history: List[Dict] = N
                 }
                 
         except httpx.HTTPError as e:
-            raise HTTPException(status_code=500, detail=f"Kimi API error: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"OpenAI API error: {str(e)}")
 
 
 async def process_property_document(file_content: str, file_type: str) -> Dict:
     """
-    Process a property document (PDF text, etc.) with Kimi
-    
-    Args:
-        file_content: Extracted text content from the document
-        file_type: Type of file (pdf, docx, etc.)
-        
-    Returns:
-        Dict with extracted property information
+    Process a property document with OpenAI
     """
     prompt = f"""Extract property information from this {file_type} document:
 
 DOCUMENT CONTENT:
-{file_content[:8000]}  # Limit content length
+{file_content[:8000]}
 
 Extract and return ONLY a JSON object with these fields:
 {{
@@ -175,16 +147,17 @@ If a field cannot be found, use null."""
 
     async with httpx.AsyncClient() as client:
         response = await client.post(
-            KIMI_API_URL,
+            OPENAI_API_URL,
             headers={
-                "Authorization": f"Bearer {KIMI_API_KEY}",
+                "Authorization": f"Bearer {OPENAI_API_KEY}",
                 "Content-Type": "application/json"
             },
             json={
-                "model": KIMI_MODEL,
+                "model": OPENAI_MODEL,
                 "messages": [{"role": "user", "content": prompt}],
                 "temperature": 0.2,
-                "max_tokens": 500
+                "max_tokens": 500,
+                "response_format": {"type": "json_object"}
             },
             timeout=60.0
         )
@@ -193,13 +166,7 @@ If a field cannot be found, use null."""
         data = response.json()
         
         try:
-            # Try to parse JSON from response
             content = data["choices"][0]["message"]["content"]
-            # Extract JSON if wrapped in markdown
-            if "```json" in content:
-                content = content.split("```json")[1].split("```")[0]
-            elif "```" in content:
-                content = content.split("```")[1].split("```")[0]
             return json.loads(content)
         except (json.JSONDecodeError, IndexError):
             return {"error": "Could not parse document", "raw": content}
@@ -216,30 +183,17 @@ MOCK_RESPONSES = {
         "response": "I can help you fill out the property research form! Just tell me about your property naturally. For example:\n\n• 'I have a $5M industrial property at 1500 Michael Drive in Welland'\n• 'Retail space in Toronto for $2.5 million, 15,000 SF'\n• 'Office building at 100 King Street, asking $10M'\n\nI'll extract the details and fill out the form automatically!",
         "extractedData": {},
         "action": "help"
-    },
-    "example": {
-        "response": "Perfect! I found an industrial property at 1500 Michael Drive in Welland listed for $5,000,000. I've filled out the form with these details. Ready to launch the research mission?",
-        "extractedData": {
-            "address": "1500 Michael Drive",
-            "city": "Welland",
-            "assetClass": "Industrial",
-            "price": 5000000,
-            "size": None,
-            "region": "Niagara"
-        },
-        "action": "none"
     }
 }
 
 
-async def chat_with_kimi_mock(user_message: str, conversation_history: List[Dict] = None) -> Dict:
+async def chat_with_openai_mock(user_message: str, conversation_history: List[Dict] = None) -> Dict:
     """Mock version for testing without API key"""
     import asyncio
-    await asyncio.sleep(1)  # Simulate network delay
+    await asyncio.sleep(1)
     
     lower = user_message.lower()
     
-    # Simple pattern matching for mock
     if "help" in lower:
         return MOCK_RESPONSES["help"]
     
@@ -250,10 +204,9 @@ async def chat_with_kimi_mock(user_message: str, conversation_history: List[Dict
             "action": "submit"
         }
     
-    # Try to extract info from message
+    # Extract info from message
     info = {}
     if "$" in user_message or "million" in lower or "m " in lower:
-        # Extract price
         import re
         price_match = re.search(r'\$?([\d,.]+)\s*(?:million|m|k)?', user_message, re.IGNORECASE)
         if price_match:
@@ -276,7 +229,6 @@ async def chat_with_kimi_mock(user_message: str, conversation_history: List[Dict
         info["city"] = "Toronto"
         info["region"] = "Toronto"
     
-    # Extract address pattern
     import re
     address_match = re.search(r'(\d+\s+[^,]+(?:Street|St|Drive|Dr|Avenue|Ave|Road|Rd))', user_message, re.IGNORECASE)
     if address_match:
@@ -299,4 +251,4 @@ async def chat_with_kimi_mock(user_message: str, conversation_history: List[Dict
 
 
 # Use mock if no API key, otherwise use real API
-chat_with_property_ai = chat_with_kimi if KIMI_API_KEY else chat_with_kimi_mock
+chat_with_property_ai = chat_with_openai if OPENAI_API_KEY else chat_with_openai_mock
