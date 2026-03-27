@@ -283,5 +283,6 @@ async def chat_with_kimi_mock(user_message: str, conversation_history: List[Dict
     return MOCK_RESPONSES["default"]
 
 
-# Use mock if no API key, otherwise use real API
-chat_with_property_ai = chat_with_kimi if KIMI_API_KEY else chat_with_kimi_mock
+# Use mock if no API key or if API fails, otherwise use real API
+# Temporarily forcing mock mode due to API key issues
+chat_with_property_ai = chat_with_kimi_mock  # TODO: Switch back to chat_with_kimi when key is fixed
