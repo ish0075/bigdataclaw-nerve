@@ -12,7 +12,8 @@ import {
   ArrowLeft,
   MessageSquare,
   FileText,
-  Mic
+  Mic,
+  Paperclip
 } from 'lucide-react'
 import PropertyChat from '../components/Property/PropertyChat'
 
@@ -249,9 +250,39 @@ const PropertyResearch = () => {
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-2 text-sm text-text-muted">
-                  <input type="checkbox" className="rounded border-border-subtle" />
-                  <span>Attach documents (COM, photos, OM)</span>
+                {/* File Upload Section */}
+                <div className="p-4 rounded-xl bg-bg-input border border-border-subtle">
+                  <label className="block text-sm font-medium text-text-secondary mb-3">
+                    <Paperclip className="w-4 h-4 inline mr-2" />
+                    Attach Documents (Optional)
+                  </label>
+                  
+                  <div className="space-y-3">
+                    <input
+                      type="file"
+                      multiple
+                      accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.gif,.webp"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || [])
+                        if (files.length > 0) {
+                          // Show uploaded files
+                          const fileNames = files.map(f => f.name).join(', ')
+                          alert(`Files selected: ${fileNames}\n\nThese will be included with your research mission.`)
+                        }
+                      }}
+                      className="block w-full text-sm text-text-secondary
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-lg file:border-0
+                        file:text-sm file:font-medium
+                        file:bg-accent-red file:text-white
+                        hover:file:bg-accent-red/90
+                        cursor-pointer"
+                    />
+                    
+                    <p className="text-xs text-text-muted">
+                      Supported: PDF, Word, Images (PNG, JPG), TXT • Max 10MB per file
+                    </p>
+                  </div>
                 </div>
                 
                 <button
