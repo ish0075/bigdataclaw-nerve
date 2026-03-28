@@ -14,6 +14,7 @@ export default {
         'accent-green': '#27AE60',
         'accent-yellow': '#F39C12',
         'accent-blue': '#3498DB',
+        'accent-purple': '#9B59B6',
         'text-primary': '#FFFFFF',
         'text-secondary': '#9CA3AF',
         'text-muted': '#6B7280',

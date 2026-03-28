@@ -13,12 +13,13 @@ import {
   User,
   CheckCircle2,
   Sparkles,
-  AlertCircle
+  AlertCircle,
+  Square
 } from 'lucide-react'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3090'
 
-const PropertyChat = ({ onFormUpdate, formData, onSubmit }) => {
+const PropertyChat = ({ onFormUpdate, formData, onSubmit, missionStatus, onStop }) => {
   const [messages, setMessages] = useState([
     {
       id: 'welcome',
@@ -415,49 +416,61 @@ const PropertyChat = ({ onFormUpdate, formData, onSubmit }) => {
           />
         </div>
 
-        {/* Text Input */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={toggleVoice}
-            className={`p-3 rounded-xl transition-all ${
-              isListening
-                ? 'bg-accent-red text-white animate-pulse'
-                : 'bg-bg-input text-text-secondary hover:text-text-primary'
-            }`}
-            title={isListening ? 'Stop listening' : 'Start voice input'}
-          >
-            {isListening ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-          </button>
-          <div className="flex-1 relative">
-            <input
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              placeholder={isListening ? 'Listening... speak now' : 'Ask Kimi about your property...'}
-              className="w-full input-field pr-12"
-              disabled={isLoading}
-            />
-            {inputText && (
-              <button
-                onClick={() => setInputText('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-bg-card text-text-muted"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
+        {/* Text Input or Stop Button */}
+        {missionStatus ? (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onStop}
+              className="flex-1 btn-secondary py-3 flex items-center justify-center gap-2 border-accent-red text-accent-red hover:bg-accent-red/10"
+            >
+              <Square className="w-5 h-5" />
+              <span>Stop Mission</span>
+            </button>
           </div>
-          <button
-            onClick={() => handleSendMessage()}
-            disabled={!inputText.trim() || isLoading}
-            className="p-3 rounded-xl bg-accent-red text-white hover:bg-accent-red/90 transition-colors disabled:opacity-50"
-          >
-            <Send className="w-5 h-5" />
-          </button>
-        </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleVoice}
+              className={`p-3 rounded-xl transition-all ${
+                isListening
+                  ? 'bg-accent-red text-white animate-pulse'
+                  : 'bg-bg-input text-text-secondary hover:text-text-primary'
+              }`}
+              title={isListening ? 'Stop listening' : 'Start voice input'}
+            >
+              {isListening ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+            </button>
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                placeholder={isListening ? 'Listening... speak now' : 'Ask Kimi about your property...'}
+                className="w-full input-field pr-12"
+                disabled={isLoading}
+              />
+              {inputText && (
+                <button
+                  onClick={() => setInputText('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-bg-card text-text-muted"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => handleSendMessage()}
+              disabled={!inputText.trim() || isLoading}
+              className="p-3 rounded-xl bg-accent-red text-white hover:bg-accent-red/90 transition-colors disabled:opacity-50"
+            >
+              <Send className="w-5 h-5" />
+            </button>
+          </div>
+        )}
 
         {/* Voice Hint */}
-        {isListening && (
+        {isListening && !missionStatus && (
           <p className="text-xs text-accent-red mt-2 text-center animate-pulse">
             🎙️ Listening... Speak clearly about your property
           </p>

@@ -13,7 +13,9 @@ import {
   MessageSquare,
   FileText,
   Mic,
-  Paperclip
+  Paperclip,
+  Square,
+  X
 } from 'lucide-react'
 import PropertyChat from '../components/Property/PropertyChat'
 
@@ -35,6 +37,17 @@ const PropertyResearch = () => {
   
   const handleFormUpdate = (updates) => {
     setFormData(prev => ({ ...prev, ...updates }))
+  }
+  
+  const handleStopMission = () => {
+    if (missionStatus) {
+      setMissionStatus({ ...missionStatus, status: 'aborted' })
+      setIsSubmitting(false)
+      // Reset after a moment
+      setTimeout(() => {
+        setMissionStatus(null)
+      }, 1000)
+    }
   }
   
   const handleSubmit = async (e) => {
@@ -121,6 +134,8 @@ const PropertyResearch = () => {
               onFormUpdate={handleFormUpdate}
               formData={formData}
               onSubmit={handleSubmit}
+              missionStatus={missionStatus}
+              onStop={handleStopMission}
             />
           ) : (
             <div className="card p-6">
@@ -285,28 +300,45 @@ const PropertyResearch = () => {
                   </div>
                 </div>
                 
-                <button
-                  type="submit"
-                  disabled={isSubmitting || missionStatus}
-                  className="btn-primary w-full flex items-center justify-center gap-2 py-3"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      <span>Launching Mission...</span>
-                    </>
-                  ) : missionStatus ? (
-                    <>
+                {/* Action Buttons */}
+                {missionStatus ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={handleStopMission}
+                      className="btn-secondary w-full flex items-center justify-center gap-2 py-3 border-accent-red text-accent-red hover:bg-accent-red/10"
+                    >
+                      <Square className="w-5 h-5" />
+                      <span>Stop Mission</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/')}
+                      className="btn-primary w-full flex items-center justify-center gap-2 py-3"
+                    >
                       <CheckCircle2 className="w-5 h-5" />
-                      <span>Mission Launched</span>
-                    </>
-                  ) : (
-                    <>
-                      <Rocket className="w-5 h-5" />
-                      <span>Launch Mission</span>
-                    </>
-                  )}
-                </button>
+                      <span>View Progress</span>
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="btn-primary w-full flex items-center justify-center gap-2 py-3 disabled:opacity-50"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Launching Mission...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Rocket className="w-5 h-5" />
+                        <span>Launch Mission</span>
+                      </>
+                    )}
+                  </button>
+                )}
               </form>
             </div>
           )}

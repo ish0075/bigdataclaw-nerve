@@ -11,7 +11,11 @@ import {
   Map, 
   LayoutDashboard,
   Flame,
-  Database
+  Database,
+  UserPlus,
+  Hammer,
+  Settings,
+  Sparkles
 } from 'lucide-react'
 
 const navItems = [
@@ -19,8 +23,13 @@ const navItems = [
   { path: '/research', label: 'Property Research', icon: Building2 },
   { path: '/hotmoney', label: 'Hot Money Radar', icon: Flame },
   { path: '/pipeline', label: 'Deal Pipeline', icon: Users },
+  { path: '/opportunities', label: 'Opportunities', icon: Sparkles },
   { path: '/agents', label: 'Agent Workspace', icon: Cpu },
   { path: '/vault', label: 'Obsidian Vault', icon: Database },
+]
+
+const recruitmentNavItems = [
+  { path: '/exp-agent-recruiter', label: 'EXP Agent Recruiter', icon: UserPlus },
 ]
 
 const bottomNavItems = [
@@ -28,9 +37,11 @@ const bottomNavItems = [
   { path: '/buyers', label: 'Buyer Matcher', icon: Users },
   { path: '/agents-matcher', label: 'Agent Matcher', icon: UserCircle },
   { path: '/lenders', label: 'Lender Matcher', icon: Landmark },
+  { path: '/builders', label: 'Builder Directory', icon: Hammer },
   { path: '/upload', label: 'Property Upload', icon: Upload },
   { path: '/skills', label: 'Skills & Agents', icon: Cpu },
   { path: '/map', label: 'Map View', icon: Map },
+  { path: '/data-manager', label: 'Data Manager', icon: Database },
 ]
 
 const Sidebar = () => {
@@ -55,6 +66,22 @@ const Sidebar = () => {
           Main
         </div>
         {navItems.map((item) => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            className={({ isActive }) => 
+              `nav-item ${isActive ? 'active' : ''}`
+            }
+          >
+            <item.icon className="w-5 h-5" />
+            <span className="font-medium">{item.label}</span>
+          </NavLink>
+        ))}
+        
+        <div className="px-3 mt-6 mb-2 text-xs font-semibold text-text-muted uppercase tracking-wider">
+          Recruitment
+        </div>
+        {recruitmentNavItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}

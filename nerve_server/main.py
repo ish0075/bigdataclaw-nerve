@@ -22,16 +22,17 @@ try:
 except ImportError:
     print("python-dotenv not installed, using system environment variables")
 
-# Import AI service (using mock since API keys are invalid)
+# Import AI service (using local Qwen via Ollama)
 try:
+    from services.local_llm_service import chat_with_local_llm as chat_with_property_ai
+    from services.local_llm_service import process_document_with_local_llm as process_property_document
+    print("🤖 Using Local LLM (Qwen 2.5 via Ollama)")
+except ImportError as e:
+    print(f"⚠️ Local LLM service not available: {e}")
+    # Fallback to mock
     from services.openai_service import chat_with_openai_mock as chat_with_property_ai
     from services.openai_service import chat_with_openai_mock as process_property_document
-except ImportError:
-    # Fallback if service not available
-    async def chat_with_property_ai(*args, **kwargs):
-        return {"response": "AI service not available", "extractedData": {}, "action": "none"}
-    async def process_property_document(*args, **kwargs):
-        return {"error": "Document processing not available"}
+    print("🎭 Using Mock AI (fallback)")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("nerve-server")

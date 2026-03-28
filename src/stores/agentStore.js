@@ -125,4 +125,8 @@ export const useAgentStore = create((set, get) => ({
   getAgentLogs: (agentId) => {
     return get().logs.filter(l => l.agentId === agentId)
   },
+  
+  clearLogs: (agentId) => set((state) => ({
+    logs: state.logs.filter(l => l.agentId !== agentId)
+  })),
 }))

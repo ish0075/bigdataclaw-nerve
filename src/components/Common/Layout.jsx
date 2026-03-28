@@ -2,7 +2,7 @@ import React from 'react'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 
-const Layout = ({ children, connected }) => {
+const Layout = ({ children, connected, globalSearch }) => {
   return (
     <div className="min-h-screen bg-bg-primary flex">
       {/* Sidebar */}
@@ -10,7 +10,7 @@ const Layout = ({ children, connected }) => {
       
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        <TopBar connected={connected} />
+        <TopBar connected={connected} globalSearch={globalSearch} />
         
         <main className="flex-1 overflow-auto p-6 scrollbar-thin">
           <div className="max-w-7xl mx-auto">

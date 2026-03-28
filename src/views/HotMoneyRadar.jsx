@@ -1,9 +1,16 @@
-import React from 'react'
+import React, { useState, useMemo } from 'react'
 import { useMissionStore } from '../stores/missionStore'
-import { Flame, Phone, Mail, ExternalLink, Target, Calendar, MapPin, DollarSign, Filter, Download } from 'lucide-react'
+import { Flame, Phone, Mail, ExternalLink, Target, Calendar, MapPin, DollarSign, Filter, Download, X, Check } from 'lucide-react'
 
 const HotMoneyRadar = () => {
   const { hotMoneyLeads } = useMissionStore()
+  const [showFilterModal, setShowFilterModal] = useState(false)
+  const [filters, setFilters] = useState({
+    propertyType: 'all',
+    minCash: '',
+    maxCash: '',
+    location: ''
+  })
   
   const sampleLeads = [
     {
@@ -74,7 +81,18 @@ const HotMoneyRadar = () => {
     },
   ]
   
-  const displayLeads = hotMoneyLeads.length > 0 ? hotMoneyLeads : sampleLeads
+  const allLeads = hotMoneyLeads.length > 0 ? hotMoneyLeads : sampleLeads
+  
+  // Apply filters
+  const displayLeads = useMemo(() => {
+    return allLeads.filter(lead => {
+      if (filters.propertyType !== 'all' && lead.propertyType !== filters.propertyType) return false
+      if (filters.minCash && lead.cashAmount < parseInt(filters.minCash)) return false
+      if (filters.maxCash && lead.cashAmount > parseInt(filters.maxCash)) return false
+      if (filters.location && !lead.location.toLowerCase().includes(filters.location.toLowerCase())) return false
+      return true
+    })
+  }, [allLeads, filters])
   
   const formatCash = (amount) => {
     if (amount >= 1e6) return `$${(amount / 1e6).toFixed(1)}M`
@@ -85,7 +103,14 @@ const HotMoneyRadar = () => {
   const totalCapital = displayLeads.reduce((sum, l) => sum + (l.cashAmount || 0), 0)
   
   return (
-    <div className="space-y-6 animate-fade-in">
+    <>
+      <FilterModal 
+        show={showFilterModal} 
+        onClose={() => setShowFilterModal(false)}
+        filters={filters}
+        setFilters={setFilters}
+      />
+      <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -98,14 +123,17 @@ const HotMoneyRadar = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="btn-secondary flex items-center gap-2">
+          <button 
+            onClick={() => setShowFilterModal(true)}
+            className="btn-secondary flex items-center gap-2"
+          >
             <Filter className="w-4 h-4" />
             Filter
+            {Object.values(filters).some(v => v && v !== 'all') && (
+              <span className="w-2 h-2 rounded-full bg-accent-red"></span>
+            )}
           </button>
-          <button className="btn-secondary flex items-center gap-2">
-            <Download className="w-4 h-4" />
-            Export
-          </button>
+          <ExportButton leads={displayLeads} />
         </div>
       </div>
       
@@ -155,6 +183,161 @@ const HotMoneyRadar = () => {
           {displayLeads.map((lead) => (
             <HotMoneyListItem key={lead.id} lead={lead} formatCash={formatCash} />
           ))}
+        </div>
+      </div>
+    </div>
+    </>
+  )
+}
+
+const ExportButton = ({ leads }) => {
+  const handleExport = () => {
+    // Create CSV content
+    const headers = ['Entity', 'Cash Amount', 'Sale Date', 'Location', 'Property', 'Property Type', 'Match Score', 'Days Ago']
+    const rows = leads.map(lead => [
+      lead.entity,
+      lead.cashAmount,
+      lead.saleDate,
+      lead.location,
+      lead.property,
+      lead.propertyType,
+      lead.matchScore,
+      lead.daysAgo
+    ])
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n')
+    
+    // Download file
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `hot-money-leads-${new Date().toISOString().split('T')[0]}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+  
+  return (
+    <button 
+      onClick={handleExport}
+      className="btn-secondary flex items-center gap-2"
+    >
+      <Download className="w-4 h-4" />
+      Export
+    </button>
+  )
+}
+
+const FilterModal = ({ show, onClose, filters, setFilters }) => {
+  if (!show) return null
+  
+  const propertyTypes = ['all', 'Industrial', 'Retail', 'Office', 'Multi-Family', 'Agricultural', 'Land', 'Mixed-Use']
+  
+  const clearFilters = () => {
+    setFilters({
+      propertyType: 'all',
+      minCash: '',
+      maxCash: '',
+      location: ''
+    })
+  }
+  
+  const hasActiveFilters = Object.values(filters).some(v => v && v !== 'all')
+  
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div className="card w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-4 border-b border-border-subtle">
+          <h3 className="font-semibold flex items-center gap-2">
+            <Filter className="w-5 h-5 text-accent-red" />
+            Filter Hot Money Leads
+          </h3>
+          <button onClick={onClose} className="p-2 hover:bg-bg-input rounded-lg transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        
+        <div className="p-4 space-y-4">
+          {/* Property Type */}
+          <div>
+            <label className="block text-sm text-text-secondary mb-2">Property Type</label>
+            <select 
+              value={filters.propertyType}
+              onChange={(e) => setFilters({...filters, propertyType: e.target.value})}
+              className="w-full bg-bg-input border border-border-subtle rounded-lg px-3 py-2"
+            >
+              <option value="all">All Types</option>
+              <option value="Industrial">Industrial</option>
+              <option value="Retail">Retail</option>
+              <option value="Office">Office</option>
+              <option value="Multi-Family">Multi-Family</option>
+              <option value="Agricultural">Agricultural</option>
+              <option value="Land">Land</option>
+              <option value="Mixed-Use">Mixed-Use</option>
+            </select>
+          </div>
+          
+          {/* Cash Range */}
+          <div>
+            <label className="block text-sm text-text-secondary mb-2">Cash Amount Range</label>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">$</span>
+                <input
+                  type="number"
+                  placeholder="Min"
+                  value={filters.minCash}
+                  onChange={(e) => setFilters({...filters, minCash: e.target.value})}
+                  className="w-full bg-bg-input border border-border-subtle rounded-lg pl-7 pr-3 py-2"
+                />
+              </div>
+              <span className="text-text-muted">-</span>
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">$</span>
+                <input
+                  type="number"
+                  placeholder="Max"
+                  value={filters.maxCash}
+                  onChange={(e) => setFilters({...filters, maxCash: e.target.value})}
+                  className="w-full bg-bg-input border border-border-subtle rounded-lg pl-7 pr-3 py-2"
+                />
+              </div>
+            </div>
+          </div>
+          
+          {/* Location */}
+          <div>
+            <label className="block text-sm text-text-secondary mb-2">Location</label>
+            <input
+              type="text"
+              placeholder="Search location..."
+              value={filters.location}
+              onChange={(e) => setFilters({...filters, location: e.target.value})}
+              className="w-full bg-bg-input border border-border-subtle rounded-lg px-3 py-2"
+            />
+          </div>
+        </div>
+        
+        <div className="flex items-center justify-between p-4 border-t border-border-subtle">
+          <button 
+            onClick={clearFilters}
+            disabled={!hasActiveFilters}
+            className="text-sm text-text-secondary hover:text-text-primary disabled:opacity-50"
+          >
+            Clear All
+          </button>
+          <button 
+            onClick={onClose}
+            className="btn-primary flex items-center gap-2"
+          >
+            <Check className="w-4 h-4" />
+            Apply Filters
+          </button>
         </div>
       </div>
     </div>
