@@ -18,6 +18,7 @@ import MapView from './views/MapView'
 import Settings from './views/Settings'
 import EXAgentRecruiterEnhanced from './views/EXAgentRecruiterEnhanced'
 import CommercialAgentRecruiter from './views/CommercialAgentRecruiter'
+import BrokeragesView from './views/BrokeragesView'
 import DataManager from './views/DataManager'
 import Opportunities from './views/Opportunities'
 import GlobalSearch from './components/GlobalSearch'
@@ -65,6 +66,7 @@ function App() {
         <Route path="/settings" element={<Settings />} />
         <Route path="/exp-agent-recruiter" element={<EXAgentRecruiterEnhanced />} />
         <Route path="/commercial-agent-recruiter" element={<CommercialAgentRecruiter />} />
+        <Route path="/brokerages" element={<BrokeragesView />} />
         <Route path="/residential-recruiter" element={<Navigate to="/exp-agent-recruiter" replace />} />
         <Route path="/data-manager" element={<DataManager />} />
         <Route path="/opportunities" element={<Opportunities />} />

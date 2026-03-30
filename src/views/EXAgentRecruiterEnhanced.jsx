@@ -725,7 +725,7 @@ const BrokerageCard = ({ brokerage, isExpanded, onToggle }) => {
 };
 
 // Main Component
-const EXAgentRecruiterEnhanced = () => {
+const EXAgentRecruiterEnhanced = ({ initialViewMode = 'agents' }) => {
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -752,7 +752,7 @@ const EXAgentRecruiterEnhanced = () => {
   const [expandedGroups, setExpandedGroups] = useState({});
   const [expandedQuickLinks, setExpandedQuickLinks] = useState({});
   const [clipAgent, setClipAgent] = useState(null); // For Obsidian clip modal
-  const [viewMode, setViewMode] = useState('agents'); // 'agents' | 'brokerages'
+  const [viewMode, setViewMode] = useState(initialViewMode); // 'agents' | 'brokerages'
 
   // Check API health
   useEffect(() => {

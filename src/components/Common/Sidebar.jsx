@@ -16,7 +16,8 @@ import {
   Hammer,
   Settings,
   Sparkles,
-  Briefcase
+  Briefcase,
+  Building
 } from 'lucide-react'
 
 const navItems = [
@@ -32,6 +33,7 @@ const navItems = [
 const recruitmentNavItems = [
   { path: '/exp-agent-recruiter', label: 'EXP Agent Recruiter', icon: UserPlus, badge: '96K' },
   { path: '/commercial-agent-recruiter', label: 'Commercial Agents', icon: Briefcase, badge: '6.7K' },
+  { path: '/brokerages', label: 'Brokerages', icon: Building },
 ]
 
 const bottomNavItems = [
