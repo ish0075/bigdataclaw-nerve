@@ -89,7 +89,7 @@ const generateQuickLinks = (agent) => {
     linkedin: agent.linkedin ? `https://linkedin.com/in/${agent.linkedin}` : `https://www.linkedin.com/search/results/people/?keywords=${linkedinName}`,
     facebook: `https://www.facebook.com/search/people?q=${searchName}`,
     instagram: `https://www.google.com/search?q=${googleSearchName}+instagram`,
-    realtor: `https://www.realtor.ca/agent/#name=${searchName}`,
+    realtor: `https://www.google.com/search?q=${googleSearchName}+realtor.ca`,
   }
 }
 

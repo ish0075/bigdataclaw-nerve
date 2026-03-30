@@ -74,8 +74,8 @@ const AgentDetailModal = ({ agent, onClose }) => {
   
   const getRealtorCaUrl = () => {
     if (agent.realtorCaUrl) return agent.realtorCaUrl
-    const searchQuery = encodeURIComponent(`${agent.name} ${agent.brokerage}`)
-    return `https://www.realtor.ca/agent/#name=${searchQuery}`
+    const searchQuery = encodeURIComponent(`${agent.name} realtor.ca`)
+    return `https://www.google.com/search?q=${searchQuery}`
   }
   
   const formatDate = (dateStr) => {

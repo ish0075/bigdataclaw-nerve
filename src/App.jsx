@@ -16,7 +16,8 @@ import PropertyUpload from './views/PropertyUpload'
 import SkillsAndAgents from './views/SkillsAndAgents'
 import MapView from './views/MapView'
 import Settings from './views/Settings'
-import EXAgentRecruiterUpdated from './views/EXAgentRecruiterUpdated'
+import EXAgentRecruiterEnhanced from './views/EXAgentRecruiterEnhanced'
+import CommercialAgentRecruiter from './views/CommercialAgentRecruiter'
 import DataManager from './views/DataManager'
 import Opportunities from './views/Opportunities'
 import GlobalSearch from './components/GlobalSearch'
@@ -62,7 +63,8 @@ function App() {
         <Route path="/skills" element={<SkillsAndAgents />} />
         <Route path="/map" element={<MapView />} />
         <Route path="/settings" element={<Settings />} />
-        <Route path="/exp-agent-recruiter" element={<EXAgentRecruiterUpdated />} />
+        <Route path="/exp-agent-recruiter" element={<EXAgentRecruiterEnhanced />} />
+        <Route path="/commercial-agent-recruiter" element={<CommercialAgentRecruiter />} />
         <Route path="/residential-recruiter" element={<Navigate to="/exp-agent-recruiter" replace />} />
         <Route path="/data-manager" element={<DataManager />} />
         <Route path="/opportunities" element={<Opportunities />} />

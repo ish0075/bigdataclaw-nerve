@@ -15,7 +15,8 @@ import {
   UserPlus,
   Hammer,
   Settings,
-  Sparkles
+  Sparkles,
+  Briefcase
 } from 'lucide-react'
 
 const navItems = [
@@ -29,7 +30,8 @@ const navItems = [
 ]
 
 const recruitmentNavItems = [
-  { path: '/exp-agent-recruiter', label: 'EXP Agent Recruiter', icon: UserPlus },
+  { path: '/exp-agent-recruiter', label: 'EXP Agent Recruiter', icon: UserPlus, badge: '96K' },
+  { path: '/commercial-agent-recruiter', label: 'Commercial Agents', icon: Briefcase, badge: '6.7K' },
 ]
 
 const bottomNavItems = [
@@ -91,6 +93,11 @@ const Sidebar = () => {
           >
             <item.icon className="w-5 h-5" />
             <span className="font-medium">{item.label}</span>
+            {item.badge && (
+              <span className="ml-auto px-1.5 py-0.5 bg-accent-blue/20 text-accent-blue text-[10px] rounded">
+                {item.badge}
+              </span>
+            )}
           </NavLink>
         ))}
         

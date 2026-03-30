@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Users, Search, Mail, Linkedin, MapPin, Building, ChevronDown, ChevronUp, ExternalLink, Activity, Database, WifiOff, RefreshCw } from 'lucide-react';
 import { List } from 'react-window';
+import AgentCard from '../components/ResidentialRecruiter/AgentCard';
 
 // API Base URL
 const API_BASE = 'http://localhost:8000/api';
@@ -204,6 +205,13 @@ const EXAgentRecruiterUpdated = () => {
     return parts.join(' ').trim();
   }, [searchQuery, selectedCity]);
 
+  // Check if agent is with EXP Realty
+  const isExpAgent = useCallback((agent) => {
+    if (!agent.brokerage) return false;
+    const brokerageLower = agent.brokerage.toLowerCase();
+    return brokerageLower.includes('exp') || brokerageLower.includes('eXp');
+  }, []);
+
   // Filter function for JSON data
   const filterJsonData = useCallback((data) => {
     let results = data;
@@ -227,8 +235,17 @@ const EXAgentRecruiterUpdated = () => {
       results = results.filter(agent => agent.status === selectedStatus);
     }
     
+    // Sort: Non-EXP agents first, EXP agents last
+    results.sort((a, b) => {
+      const aIsExp = isExpAgent(a);
+      const bIsExp = isExpAgent(b);
+      if (aIsExp && !bIsExp) return 1;
+      if (!aIsExp && bIsExp) return -1;
+      return 0;
+    });
+    
     return results;
-  }, [effectiveSearch, selectedBrokerage, selectedStatus]);
+  }, [effectiveSearch, selectedBrokerage, selectedStatus, isExpAgent]);
 
   // Load recruiters
   useEffect(() => {
@@ -253,7 +270,16 @@ const EXAgentRecruiterUpdated = () => {
           if (!r.ok) throw new Error(`HTTP ${r.status}`);
           const data = await r.json();
           if (!cancelled) {
-            setAgents(data.recruiters || []);
+            // Sort: Non-EXP agents first, EXP agents last
+            const recruiters = data.recruiters || [];
+            recruiters.sort((a, b) => {
+              const aIsExp = isExpAgent(a);
+              const bIsExp = isExpAgent(b);
+              if (aIsExp && !bIsExp) return 1;
+              if (!aIsExp && bIsExp) return -1;
+              return 0;
+            });
+            setAgents(recruiters);
             setTotalAgents(data.total || 0);
             setLoading(false);
           }
@@ -618,18 +644,18 @@ const EXAgentRecruiterUpdated = () => {
               {expanded && (
                 <div className="divide-y divide-slate-700/50">
                   {useVirtualList ? (
-                    <div style={{ height: Math.min(groupAgents.length * 80, 600) }}>
+                    <div style={{ height: Math.min(groupAgents.length * 180, 800) }}>
                       <List
-                        height={Math.min(groupAgents.length * 80, 600)}
+                        height={Math.min(groupAgents.length * 180, 800)}
                         itemCount={groupAgents.length}
-                        itemSize={80}
+                        itemSize={180}
                         innerElementType={InnerElement}
                       >
                         {({ index, style }) => (
                           <div style={style}>
-                            <AgentRow 
+                            <AgentCard 
                               agent={groupAgents[index]} 
-                              onQuickAction={handleQuickAction} 
+                              onClick={() => handleQuickAction('details', null, groupAgents[index].id)} 
                             />
                           </div>
                         )}
@@ -637,10 +663,10 @@ const EXAgentRecruiterUpdated = () => {
                     </div>
                   ) : (
                     groupAgents.map(agent => (
-                      <AgentRow 
+                      <AgentCard 
                         key={agent.id} 
                         agent={agent} 
-                        onQuickAction={handleQuickAction} 
+                        onClick={() => handleQuickAction('details', null, agent.id)} 
                       />
                     ))
                   )}

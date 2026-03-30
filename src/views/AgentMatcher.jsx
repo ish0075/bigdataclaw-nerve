@@ -1,9 +1,9 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { 
   UserCircle, Search, MapPin, Phone, Mail, Star, TrendingUp, Award, 
   ChevronRight, Briefcase, Building2, ExternalLink, Linkedin, Globe,
   MessageCircle, ArrowUpRight, Filter, Download, X,
-  Database, Check, FileText
+  Database, Check, FileText, Facebook, Instagram, MoreHorizontal, Share2, MessageSquare, ChevronUp
 } from 'lucide-react'
 import { 
   ONTARIO_REGIONS, 
@@ -642,32 +642,61 @@ const generateQuickLinks = (agent) => {
   }
 }
 
+// Quick Link Button Component
+const QuickLinkButton = ({ href, icon, label, color, fullWidth = false }) => {
+  const isMailto = href?.startsWith('mailto:');
+  const isTel = href?.startsWith('tel:');
+  return (
+    <a
+      href={href}
+      target={isMailto || isTel ? undefined : '_blank'}
+      rel={isMailto || isTel ? undefined : 'noopener noreferrer'}
+      className={`
+        flex items-center justify-center gap-2 px-2 py-2 rounded-lg text-white text-[10px] font-medium
+        ${color} hover:opacity-90 transition-opacity whitespace-nowrap
+        ${fullWidth ? 'w-full' : 'min-w-0'}
+      `}
+      title={label}
+    >
+      <span className="flex-shrink-0">{icon}</span>
+      <span className="truncate">{label}</span>
+    </a>
+  );
+};
+
 const AgentMatcher = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterAssetClass, setFilterAssetClass] = useState('all')
   const [filterRegion, setFilterRegion] = useState('all')
   const [filterCity, setFilterCity] = useState('all')
-  const [selectedAgent, setSelectedAgent] = useState(null)
-  const [showQuickLinks, setShowQuickLinks] = useState(false)
   const [showObsidianExport, setShowObsidianExport] = useState(false)
+  const [expandedQuickLinks, setExpandedQuickLinks] = useState({})
+  
+  // Total agents count from metadata (6,697 available in full dataset)
+  const TOTAL_COMMERCIAL_AGENTS = 6697
+  
+  // Use hardcoded sample data for now (backend API needed for full dataset)
+  const agents = agentDatabase
+  const loading = false
+  const error = null
 
   // Get unique regions from agents
   const regions = useMemo(() => {
-    return [...new Set(agentDatabase.map(a => a.region))].sort()
-  }, [])
+    return [...new Set(agents.map(a => a.region))].sort()
+  }, [agents])
 
   // Get cities based on selected region
   const cities = useMemo(() => {
-    let filtered = agentDatabase
+    let filtered = agents
     if (filterRegion !== 'all') {
-      filtered = agentDatabase.filter(a => a.region === filterRegion)
+      filtered = agents.filter(a => a.region === filterRegion)
     }
     return [...new Set(filtered.map(a => a.city))].sort()
-  }, [filterRegion])
+  }, [agents, filterRegion])
 
   // Filter agents
   const filteredAgents = useMemo(() => {
-    return agentDatabase.filter(agent => {
+    return agents.filter(agent => {
       // Search query
       if (searchQuery) {
         const searchLower = searchQuery.toLowerCase()
@@ -686,7 +715,7 @@ const AgentMatcher = () => {
       
       return true
     })
-  }, [searchQuery, filterAssetClass, filterRegion, filterCity])
+  }, [agents, searchQuery, filterAssetClass, filterRegion, filterCity])
 
   const formatCurrency = (value) => {
     if (value >= 1e9) return `$${(value / 1e9).toFixed(1)}B`
@@ -694,9 +723,11 @@ const AgentMatcher = () => {
     return `$${(value / 1e3).toFixed(0)}K`
   }
 
-  const handleQuickConnect = (agent) => {
-    setSelectedAgent(agent)
-    setShowQuickLinks(true)
+  const toggleQuickLinks = (agentId) => {
+    setExpandedQuickLinks(prev => ({
+      ...prev,
+      [agentId]: !prev[agentId]
+    }))
   }
 
   // Export to CSV
@@ -710,88 +741,6 @@ const AgentMatcher = () => {
     a.href = url
     a.download = `agents-${new Date().toISOString().split('T')[0]}.csv`
     a.click()
-  }
-
-  const QuickLinksModal = ({ agent, onClose }) => {
-    const links = generateQuickLinks(agent)
-    
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
-        <div className="card w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-          <div className="p-5 border-b border-border-subtle">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-accent-blue/20 flex items-center justify-center text-2xl font-bold">
-                  {agent.name.charAt(0)}
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-text-primary">{agent.name}</h3>
-                  <p className="text-text-secondary">{agent.title} at {agent.company}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="px-2 py-0.5 rounded bg-accent-red/10 text-accent-red text-xs">{agent.specialty}</span>
-                    <span className="text-text-muted text-sm">•</span>
-                    <span className="text-text-secondary text-sm">{agent.city}, {agent.region}</span>
-                  </div>
-                </div>
-              </div>
-              <button onClick={onClose} className="p-2 hover:bg-bg-input rounded-lg">
-                <X className="w-5 h-5 text-text-muted" />
-              </button>
-            </div>
-          </div>
-          
-          <div className="p-5">
-            <p className="text-sm font-medium text-text-secondary mb-4">Quick Links - Connect Instantly</p>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { name: 'Phone', icon: Phone, url: links.phone, color: 'bg-green-500' },
-                { name: 'Email', icon: Mail, url: links.email, color: 'bg-blue-500' },
-                { name: 'WhatsApp', icon: MessageCircle, url: links.whatsapp, color: 'bg-green-600', show: !!links.whatsapp },
-                { name: 'LinkedIn', icon: Linkedin, url: links.linkedin, color: 'bg-blue-700' },
-                { name: 'Google Search', icon: Search, url: links.google, color: 'bg-gray-600' },
-                { name: 'Company Website', icon: Globe, url: links.company, color: 'bg-purple-500' },
-                { name: 'LoopNet', icon: Building2, url: links.loopnet, color: 'bg-red-600' },
-                { name: 'Crexi', icon: TrendingUp, url: links.crexi, color: 'bg-indigo-600' }
-              ].filter(l => l.show !== false).map((link) => {
-                const Icon = link.icon
-                return (
-                  <a 
-                    key={link.name}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 p-4 rounded-lg border border-border-subtle hover:border-accent-blue hover:bg-accent-blue/5 transition-all group"
-                  >
-                    <div className={`w-10 h-10 rounded-lg ${link.color} flex items-center justify-center text-white group-hover:scale-110 transition-transform`}>
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-text-primary">{link.name}</p>
-                    </div>
-                    <ArrowUpRight className="w-4 h-4 text-text-muted group-hover:text-accent-blue" />
-                  </a>
-                )
-              })}
-            </div>
-            
-            {/* Copy Info */}
-            <div className="mt-5 p-4 rounded-lg bg-bg-input">
-              <p className="text-sm font-medium text-text-secondary mb-3">Quick Copy</p>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between p-2 rounded bg-bg-primary">
-                  <span className="text-sm text-text-secondary">{agent.email}</span>
-                  <button onClick={() => navigator.clipboard.writeText(agent.email)} className="text-xs text-accent-blue hover:underline">Copy</button>
-                </div>
-                <div className="flex items-center justify-between p-2 rounded bg-bg-primary">
-                  <span className="text-sm text-text-secondary">{agent.mobile || agent.phone}</span>
-                  <button onClick={() => navigator.clipboard.writeText(agent.mobile || agent.phone)} className="text-xs text-accent-blue hover:underline">Copy</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
   }
 
   // Obsidian Export Modal
@@ -922,8 +871,9 @@ agent_count: ${agents.length}
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="card p-5">
-          <p className="text-text-muted text-sm">Total Agents</p>
-          <p className="text-3xl font-bold text-text-primary mt-1">{agentDatabase.length}</p>
+          <p className="text-text-muted text-sm">Total in Database</p>
+          <p className="text-3xl font-bold text-text-primary mt-1">{TOTAL_COMMERCIAL_AGENTS.toLocaleString()}</p>
+          <p className="text-xs text-text-muted mt-1">Sample: {agentDatabase.length} agents</p>
         </div>
         <div className="card p-5">
           <p className="text-text-muted text-sm">Filtered</p>
@@ -931,11 +881,11 @@ agent_count: ${agents.length}
         </div>
         <div className="card p-5">
           <p className="text-text-muted text-sm">Total Volume</p>
-          <p className="text-3xl font-bold text-accent-green mt-1">{formatCurrency(agentDatabase.reduce((sum, a) => sum + a.volume, 0))}</p>
+          <p className="text-3xl font-bold text-accent-green mt-1">{formatCurrency(agents.reduce((sum, a) => sum + (a.volume || 0), 0))}</p>
         </div>
         <div className="card p-5">
           <p className="text-text-muted text-sm">Avg Rating</p>
-          <p className="text-3xl font-bold text-accent-yellow mt-1">{(agentDatabase.reduce((sum, a) => sum + a.rating, 0) / agentDatabase.length).toFixed(1)}</p>
+          <p className="text-3xl font-bold text-accent-yellow mt-1">{(agents.reduce((sum, a) => sum + (parseFloat(a.rating) || 4.5), 0) / agents.length).toFixed(1)}</p>
         </div>
       </div>
       
@@ -966,11 +916,27 @@ agent_count: ${agents.length}
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
             <input
               type="text"
-              placeholder="Search agents, companies, cities..."
+              placeholder="Search agents, companies, cities... (Press Enter)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-bg-input border border-border-subtle rounded-lg text-sm"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  // Trigger search - already reactive, but adds UX feedback
+                  setExpandedQuickLinks({})
+                }
+              }}
+              className="w-full pl-10 pr-24 py-2 bg-bg-input border border-border-subtle rounded-lg text-sm"
             />
+            {/* Search Button */}
+            <button
+              onClick={() => {
+                setExpandedQuickLinks({})
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-accent-blue hover:bg-accent-blue/80 text-white text-xs font-medium rounded-md transition-colors flex items-center gap-1"
+            >
+              <Search className="w-3 h-3" />
+              Search
+            </button>
           </div>
           
           <select 
@@ -1079,16 +1045,169 @@ agent_count: ${agents.length}
             
             <p className="text-sm text-text-muted mb-4 line-clamp-2">{agent.bio}</p>
             
-            <button 
-              onClick={() => handleQuickConnect(agent)}
-              className="w-full py-2 rounded-lg bg-accent-blue/10 text-accent-blue hover:bg-accent-blue/20 transition-colors text-sm font-medium"
+            {/* Primary Quick Links */}
+            <div className="grid grid-cols-4 gap-2 mb-3">
+              {(() => {
+                const links = generateQuickLinks(agent);
+                return (
+                  <>
+                    <a
+                      href={links.linkedin}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-col items-center gap-1 p-2 rounded-lg bg-[#0A66C2]/10 hover:bg-[#0A66C2]/20 transition-colors group"
+                    >
+                      <Linkedin className="w-5 h-5 text-[#0A66C2]" />
+                      <span className="text-[10px] text-text-secondary group-hover:text-[#0A66C2]">LI</span>
+                    </a>
+                    <a
+                      href={links.company}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-col items-center gap-1 p-2 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 transition-colors group"
+                    >
+                      <Globe className="w-5 h-5 text-purple-500" />
+                      <span className="text-[10px] text-text-secondary group-hover:text-purple-400">Web</span>
+                    </a>
+                    <a
+                      href={links.email}
+                      className="flex flex-col items-center gap-1 p-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 transition-colors group"
+                    >
+                      <Mail className="w-5 h-5 text-blue-500" />
+                      <span className="text-[10px] text-text-secondary group-hover:text-blue-400">Email</span>
+                    </a>
+                    <a
+                      href={links.phone}
+                      className="flex flex-col items-center gap-1 p-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors group"
+                    >
+                      <Phone className="w-5 h-5 text-emerald-500" />
+                      <span className="text-[10px] text-text-secondary group-hover:text-emerald-400">Call</span>
+                    </a>
+                  </>
+                );
+              })()}
+            </div>
+            
+            {/* Expand Quick Links Button */}
+            <button
+              onClick={() => toggleQuickLinks(agent.id)}
+              className="w-full py-2 bg-bg-input/50 hover:bg-bg-input border-t border-border-subtle flex items-center justify-center gap-2 text-xs text-text-muted hover:text-text-secondary transition-colors"
             >
-              View Quick Links
+              {expandedQuickLinks[agent.id] ? (
+                <>
+                  <ChevronUp className="w-4 h-4" />
+                  Hide Quick Links
+                </>
+              ) : (
+                <>
+                  <MoreHorizontal className="w-4 h-4" />
+                  Quick Links
+                </>
+              )}
             </button>
+            
+            {/* Expanded Quick Links Section */}
+            {expandedQuickLinks[agent.id] && (
+              <div className="border-t border-border-subtle bg-bg-input/30 p-4 space-y-4 mt-0">
+                {(() => {
+                  const links = generateQuickLinks(agent);
+                  return (
+                    <>
+                      {/* Social & Professional */}
+                      <div>
+                        <p className="text-xs font-medium text-text-muted uppercase tracking-wider mb-2 flex items-center gap-2">
+                          <Share2 className="w-3 h-3" />
+                          Social & Professional
+                        </p>
+                        <div className="grid grid-cols-3 gap-2">
+                          <QuickLinkButton 
+                            href={links.linkedin} 
+                            icon={<Linkedin className="w-3.5 h-3.5" />} 
+                            label="LinkedIn"
+                            color="bg-[#0A66C2]"
+                          />
+                          <QuickLinkButton 
+                            href={links.facebook} 
+                            icon={<Facebook className="w-3.5 h-3.5" />} 
+                            label="Facebook"
+                            color="bg-[#1877F2]"
+                          />
+                          <QuickLinkButton 
+                            href={links.company} 
+                            icon={<Globe className="w-3.5 h-3.5" />} 
+                            label="Website"
+                            color="bg-purple-500"
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* CRE Platforms */}
+                      <div>
+                        <p className="text-xs font-medium text-text-muted uppercase tracking-wider mb-2 flex items-center gap-2">
+                          <Building2 className="w-3 h-3" />
+                          CRE Platforms
+                        </p>
+                        <div className="grid grid-cols-3 gap-2">
+                          <QuickLinkButton 
+                            href={links.loopnet} 
+                            icon={<Building2 className="w-3.5 h-3.5" />} 
+                            label="LoopNet"
+                            color="bg-red-600"
+                          />
+                          <QuickLinkButton 
+                            href={links.crexi} 
+                            icon={<TrendingUp className="w-3.5 h-3.5" />} 
+                            label="Crexi"
+                            color="bg-indigo-600"
+                          />
+                          <QuickLinkButton 
+                            href={links.google} 
+                            icon={<Search className="w-3.5 h-3.5" />} 
+                            label="Google"
+                            color="bg-slate-600"
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Contact */}
+                      <div>
+                        <p className="text-xs font-medium text-text-muted uppercase tracking-wider mb-2 flex items-center gap-2">
+                          <MessageSquare className="w-3 h-3" />
+                          Contact
+                        </p>
+                        <div className="grid grid-cols-3 gap-2">
+                          <QuickLinkButton 
+                            href={links.email} 
+                            icon={<Mail className="w-3.5 h-3.5" />} 
+                            label="Email"
+                            color="bg-blue-500"
+                          />
+                          <QuickLinkButton 
+                            href={links.phone} 
+                            icon={<Phone className="w-3.5 h-3.5" />} 
+                            label="Call"
+                            color="bg-green-500"
+                          />
+                          {links.whatsapp && (
+                            <QuickLinkButton 
+                              href={links.whatsapp} 
+                              icon={<MessageCircle className="w-3.5 h-3.5" />} 
+                              label="WhatsApp"
+                              color="bg-green-600"
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
           </div>
         ))}
       </div>
       
+      {/* Empty State */}
       {filteredAgents.length === 0 && (
         <div className="card p-12 text-center">
           <UserCircle className="w-16 h-16 text-text-muted mx-auto mb-4" />
@@ -1098,10 +1217,6 @@ agent_count: ${agents.length}
       )}
       
       {/* Modals */}
-      {showQuickLinks && selectedAgent && (
-        <QuickLinksModal agent={selectedAgent} onClose={() => setShowQuickLinks(false)} />
-      )}
-      
       {showObsidianExport && (
         <ObsidianExportModal agents={filteredAgents} onClose={() => setShowObsidianExport(false)} />
       )}
