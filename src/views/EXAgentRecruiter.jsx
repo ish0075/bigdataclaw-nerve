@@ -75,21 +75,47 @@ const STATUS_CONFIG = {
   declined: { color: 'border-red-500', bg: 'bg-red-500/10', text: 'text-red-400', label: 'Declined' }
 }
 
-// Generate Quick Links for an agent
+// Generate Quick Links for an agent - ALL use Google Search format
 const generateQuickLinks = (agent) => {
-  const searchName = encodeURIComponent(`${agent.name} ${agent.brokerage || ''}`)
-  const googleSearchName = encodeURIComponent(`${agent.name} realtor`)
-  const linkedinName = encodeURIComponent(agent.name)
-  const cleanBrokerage = (agent.brokerage || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+  const searchName = encodeURIComponent(agent.name)
+  const searchWithBrokerage = encodeURIComponent(`${agent.name} ${agent.brokerage || ''}`)
+  const searchRealtor = encodeURIComponent(`${agent.name} realtor`)
+  
+  // Helper to create Google search URLs
+  const googleSearch = (query) => `https://www.google.com/search?q=${encodeURIComponent(query)}`
   
   return {
+    // Primary Links
     phone: agent.phone ? `tel:${agent.phone}` : null,
     email: agent.email ? `mailto:${agent.email}` : null,
-    google: `https://www.google.com/search?q=${googleSearchName}`,
-    linkedin: agent.linkedin ? `https://linkedin.com/in/${agent.linkedin}` : `https://www.linkedin.com/search/results/people/?keywords=${linkedinName}`,
-    facebook: `https://www.facebook.com/search/people?q=${searchName}`,
-    instagram: `https://www.google.com/search?q=${googleSearchName}+instagram`,
-    realtor: `https://www.google.com/search?q=${googleSearchName}+realtor.ca`,
+    
+    // Search & Discovery (Google Search format)
+    google: googleSearch(agent.name),
+    googleRealtor: googleSearch(`${agent.name} realtor`),
+    googleNews: googleSearch(`${agent.name} real estate news`),
+    
+    // Social Media (Google Search format)
+    linkedin: googleSearch(`${agent.name} linkedin`),
+    facebook: googleSearch(`${agent.name} facebook`),
+    instagram: googleSearch(`${agent.name} instagram`),
+    twitter: googleSearch(`${agent.name} twitter`),
+    
+    // Real Estate Platforms (Google Search format)
+    realtor: googleSearch(`${agent.name} realtor.ca`),
+    zoocasa: googleSearch(`${agent.name} zoocasa`),
+    remax: googleSearch(`${agent.name} remax`),
+    
+    // Brokerage (Google Search format)
+    brokerage: agent.brokerage ? googleSearch(`${agent.brokerage}`) : null,
+    brokerageReviews: agent.brokerage ? googleSearch(`${agent.brokerage} reviews`) : null,
+    
+    // Reviews & Research (Google Search format)
+    reviews: googleSearch(`${agent.name} reviews`),
+    pastSales: googleSearch(`${agent.name} sold listings`),
+    linkedinPosts: googleSearch(`${agent.name} linkedin posts`),
+    
+    // Contact Discovery (Google Search format)
+    contactPage: googleSearch(`${agent.name} contact`),
   }
 }
 
@@ -694,7 +720,7 @@ const AgentCard = ({ agent, interactions, onQuickConnect, onViewHistory }) => {
           icon={<Linkedin className="w-3.5 h-3.5" />}
           platform="linkedin"
           agentId={agent.id}
-          url={agent.linkedin ? `https://linkedin.com/in/${agent.linkedin}` : `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(agent.name)}`}
+          url={`https://www.google.com/search?q=${encodeURIComponent(agent.name + ' linkedin')}`}
           color="blue"
           interactions={interactions}
         />
@@ -702,7 +728,7 @@ const AgentCard = ({ agent, interactions, onQuickConnect, onViewHistory }) => {
           icon={<Facebook className="w-3.5 h-3.5" />}
           platform="facebook"
           agentId={agent.id}
-          url={`https://www.facebook.com/search/people?q=${encodeURIComponent(agent.name)}`}
+          url={`https://www.google.com/search?q=${encodeURIComponent(agent.name + ' facebook')}`}
           color="blue"
           interactions={interactions}
         />
@@ -710,7 +736,7 @@ const AgentCard = ({ agent, interactions, onQuickConnect, onViewHistory }) => {
           icon={<ExternalLink className="w-3.5 h-3.5" />}
           platform="google"
           agentId={agent.id}
-          url={`https://www.google.com/search?q=${encodeURIComponent(agent.name + ' real estate')}`}
+          url={`https://www.google.com/search?q=${encodeURIComponent(agent.name + ' realtor')}`}
           color="gray"
           interactions={interactions}
         />
@@ -797,14 +823,40 @@ const QuickLinksModal = ({ agent, interactions, onTrack, onClose }) => {
         </div>
         
         <div className="p-5">
-          <p className="text-sm font-medium text-text-secondary mb-4">Quick Links</p>
+          <p className="text-sm font-medium text-text-secondary mb-4">Quick Links (Google Search)</p>
           <div className="grid grid-cols-2 gap-3">
             {[
+              // Primary
               { name: 'Email', icon: Mail, platform: 'email', url: links.email, color: 'bg-blue-500' },
+              { name: 'Phone', icon: Phone, platform: 'phone', url: links.phone, color: 'bg-green-500' },
+              
+              // Search & Discovery
+              { name: 'Google', icon: Search, platform: 'google', url: links.google, color: 'bg-gray-600' },
+              { name: 'Realtor Search', icon: Globe, platform: 'googleRealtor', url: links.googleRealtor, color: 'bg-red-600' },
+              { name: 'News', icon: MessageSquare, platform: 'googleNews', url: links.googleNews, color: 'bg-orange-500' },
+              
+              // Social Media
               { name: 'LinkedIn', icon: Linkedin, platform: 'linkedin', url: links.linkedin, color: 'bg-blue-700' },
               { name: 'Facebook', icon: Facebook, platform: 'facebook', url: links.facebook, color: 'bg-blue-600' },
-              { name: 'Google', icon: Search, platform: 'google', url: links.google, color: 'bg-gray-600' },
-              { name: 'Realtor.ca', icon: Globe, platform: 'realtor', url: links.realtor, color: 'bg-red-600' },
+              { name: 'Instagram', icon: Instagram, platform: 'instagram', url: links.instagram, color: 'bg-pink-500' },
+              { name: 'Twitter/X', icon: MessageSquare, platform: 'twitter', url: links.twitter, color: 'bg-black' },
+              
+              // Real Estate Platforms
+              { name: 'Realtor.ca', icon: Globe, platform: 'realtor', url: links.realtor, color: 'bg-red-700' },
+              { name: 'Zoocasa', icon: Globe, platform: 'zoocasa', url: links.zoocasa, color: 'bg-teal-500' },
+              { name: 'RE/MAX', icon: Building, platform: 'remax', url: links.remax, color: 'bg-red-500' },
+              
+              // Research
+              { name: 'Reviews', icon: Star, platform: 'reviews', url: links.reviews, color: 'bg-yellow-500' },
+              { name: 'Past Sales', icon: BarChart3, platform: 'pastSales', url: links.pastSales, color: 'bg-indigo-500' },
+              { name: 'LinkedIn Posts', icon: Linkedin, platform: 'linkedinPosts', url: links.linkedinPosts, color: 'bg-blue-500' },
+              { name: 'Contact Page', icon: Link2, platform: 'contactPage', url: links.contactPage, color: 'bg-purple-500' },
+              
+              // Brokerage
+              ...(links.brokerage ? [
+                { name: 'Brokerage', icon: Building2, platform: 'brokerage', url: links.brokerage, color: 'bg-emerald-600' },
+                { name: 'Brokerage Reviews', icon: Star, platform: 'brokerageReviews', url: links.brokerageReviews, color: 'bg-emerald-500' }
+              ] : []),
             ].filter(l => l.url).map((link) => {
               const Icon = link.icon
               const isTracked = !!interactions[link.platform]
