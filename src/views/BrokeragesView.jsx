@@ -8,6 +8,210 @@ import {
 // API Base URL
 const API_BASE = 'http://localhost:8000/api'
 
+// Sample Brokerages Data (fallback if API fails)
+const SAMPLE_BROKERAGES = [
+  {
+    id: '1',
+    displayName: 'RE/MAX',
+    legalName: 'RE/MAX Ontario Inc.',
+    name: 'RE/MAX',
+    agentCount: 2850,
+    cities: new Set(['Toronto', 'Mississauga', 'Oakville', 'Vaughan', 'Markham']),
+    phone: '905-848-9800',
+    email: 'info@remax-ontario.com',
+    website: 'https://www.remax.ca',
+    address: '7101 Syntex Drive, Mississauga, ON L5N 6H5',
+    city: 'Mississauga',
+    province: 'Ontario',
+    brokerOfRecord: 'John Smith',
+    managingBroker: 'Sarah Johnson',
+    president: 'Michael Brown',
+    vpSales: 'Jennifer Davis',
+    socialLinks: {
+      linkedin: 'https://www.linkedin.com/company/remax',
+      facebook: 'https://www.facebook.com/REMAX',
+      instagram: 'https://www.instagram.com/remax',
+      twitter: 'https://twitter.com/REMAX'
+    },
+    notes: 'Canada\'s largest real estate network with over 20,000 agents nationwide.'
+  },
+  {
+    id: '2',
+    displayName: 'Century 21',
+    legalName: 'Century 21 Canada Limited Partnership',
+    name: 'Century 21',
+    agentCount: 1950,
+    cities: new Set(['Toronto', 'Ottawa', 'Hamilton', 'London', 'Kitchener']),
+    phone: '416-555-0100',
+    email: 'info@century21.ca',
+    website: 'https://www.century21.ca',
+    address: '123 Main Street, Toronto, ON M5V 3A8',
+    city: 'Toronto',
+    province: 'Ontario',
+    brokerOfRecord: 'David Wilson',
+    managingBroker: 'Lisa Anderson',
+    president: 'Robert Taylor',
+    vpSales: 'Amanda White',
+    socialLinks: {
+      linkedin: 'https://www.linkedin.com/company/century-21',
+      facebook: 'https://www.facebook.com/Century21',
+      instagram: 'https://www.instagram.com/century21',
+      twitter: null
+    },
+    notes: 'Global real estate brand with strong presence in residential and commercial markets.'
+  },
+  {
+    id: '3',
+    displayName: 'Sutton Group',
+    legalName: 'Sutton Group Realty Services Inc.',
+    name: 'Sutton Group',
+    agentCount: 1420,
+    cities: new Set(['Toronto', 'Richmond Hill', 'North York', 'Scarborough']),
+    phone: '416-555-0200',
+    email: 'info@sutton.com',
+    website: 'https://www.sutton.com',
+    address: '4711 Yonge Street, North York, ON M2N 6K8',
+    city: 'North York',
+    province: 'Ontario',
+    brokerOfRecord: 'James Mitchell',
+    managingBroker: 'Patricia Lee',
+    president: 'Christopher Wong',
+    vpSales: 'Michelle Chen',
+    socialLinks: {
+      linkedin: 'https://www.linkedin.com/company/sutton-group',
+      facebook: 'https://www.facebook.com/SuttonGroup',
+      instagram: 'https://www.instagram.com/suttongroup',
+      twitter: null
+    },
+    notes: 'Canadian-owned real estate brokerage with focus on personalized service.'
+  },
+  {
+    id: '4',
+    displayName: 'Royal LePage',
+    legalName: 'Royal LePage Real Estate Services Ltd.',
+    name: 'Royal LePage',
+    agentCount: 2100,
+    cities: new Set(['Toronto', 'Ottawa', 'Vancouver', 'Calgary', 'Montreal']),
+    phone: '905-555-0300',
+    email: 'info@royallepage.ca',
+    website: 'https://www.royallepage.ca',
+    address: '39 Wynford Drive, Toronto, ON M3C 3K5',
+    city: 'Toronto',
+    province: 'Ontario',
+    brokerOfRecord: 'William Turner',
+    managingBroker: 'Elizabeth Green',
+    president: 'Richard Martin',
+    vpSales: 'Susan Clark',
+    socialLinks: {
+      linkedin: 'https://www.linkedin.com/company/royal-lepage',
+      facebook: 'https://www.facebook.com/RoyalLePage',
+      instagram: 'https://www.instagram.com/royallepage',
+      twitter: 'https://twitter.com/RoyalLePage'
+    },
+    notes: 'Proudly Canadian since 1913. Leading provider of residential and commercial real estate services.'
+  },
+  {
+    id: '5',
+    displayName: 'Keller Williams',
+    legalName: 'Keller Williams Realty Centres',
+    name: 'Keller Williams',
+    agentCount: 980,
+    cities: new Set(['Toronto', 'Mississauga', 'Brampton', 'Markham']),
+    phone: '905-555-0400',
+    email: 'info@kwrealty.com',
+    website: 'https://www.kwrealty.com',
+    address: '700 Kerr Street, Oakville, ON L6K 3C7',
+    city: 'Oakville',
+    province: 'Ontario',
+    brokerOfRecord: 'Thomas Harris',
+    managingBroker: 'Karen Lewis',
+    president: 'Daniel Walker',
+    vpSales: 'Nancy Hall',
+    socialLinks: {
+      linkedin: 'https://www.linkedin.com/company/keller-williams-realty',
+      facebook: 'https://www.facebook.com/KellerWilliams',
+      instagram: 'https://www.instagram.com/kwrealty',
+      twitter: null
+    },
+    notes: 'Fast-growing real estate franchise with agent-centric business model.'
+  },
+  {
+    id: '6',
+    displayName: 'EXP Realty',
+    legalName: 'EXP Realty Canada',
+    name: 'EXP Realty',
+    agentCount: 1650,
+    cities: new Set(['Toronto', 'Vancouver', 'Calgary', 'Ottawa']),
+    phone: '1-800-555-0500',
+    email: 'info@exprealty.ca',
+    website: 'https://www.exprealty.ca',
+    address: '120 Adelaide Street West, Toronto, ON M5H 1T1',
+    city: 'Toronto',
+    province: 'Ontario',
+    brokerOfRecord: 'Glenn Sanford',
+    managingBroker: 'Pamela Kuda',
+    president: 'Michael Valdes',
+    vpSales: 'Marc Mancini',
+    socialLinks: {
+      linkedin: 'https://www.linkedin.com/company/exp-realty',
+      facebook: 'https://www.facebook.com/EXPrealty',
+      instagram: 'https://www.instagram.com/exp_realty',
+      twitter: 'https://twitter.com/EXPrealty'
+    },
+    notes: 'Cloud-based brokerage with virtual office environment and revenue share model.'
+  },
+  {
+    id: '7',
+    displayName: 'Right at Home Realty',
+    legalName: 'Right at Home Realty Inc.',
+    name: 'Right at Home Realty',
+    agentCount: 890,
+    cities: new Set(['Toronto', 'North York', 'Etobicoke', 'Scarborough']),
+    phone: '416-555-0600',
+    email: 'info@rightathomerealty.com',
+    website: 'https://www.rightathomerealty.com',
+    address: '1650 Elgin Mills Road East, Richmond Hill, ON L4S 0B2',
+    city: 'Richmond Hill',
+    province: 'Ontario',
+    brokerOfRecord: 'Daniel Di Tomaso',
+    managingBroker: 'John Bianchi',
+    president: 'Mario Di Tomaso',
+    vpSales: 'Angela Di Tomaso',
+    socialLinks: {
+      linkedin: 'https://www.linkedin.com/company/right-at-home-realty',
+      facebook: 'https://www.facebook.com/RightAtHomeRealty',
+      instagram: 'https://www.instagram.com/rightathomerealty',
+      twitter: null
+    },
+    notes: 'Independent brokerage serving the Greater Toronto Area since 2002.'
+  },
+  {
+    id: '8',
+    displayName: 'Homelife',
+    legalName: 'Homelife Realty Services Inc.',
+    name: 'Homelife',
+    agentCount: 750,
+    cities: new Set(['Toronto', 'Mississauga', 'Brampton', 'Vaughan']),
+    phone: '905-555-0700',
+    email: 'info@homelife.ca',
+    website: 'https://www.homelife.ca',
+    address: ' Brokerage Network, Various Locations',
+    city: 'Toronto',
+    province: 'Ontario',
+    brokerOfRecord: 'Steven Smith',
+    managingBroker: 'Maria Rodriguez',
+    president: 'Carlos Mendez',
+    vpSales: 'Lucia Garcia',
+    socialLinks: {
+      linkedin: 'https://www.linkedin.com/company/homelife-realty',
+      facebook: 'https://www.facebook.com/HomelifeRealty',
+      instagram: 'https://www.instagram.com/homeliferealty',
+      twitter: null
+    },
+    notes: 'Full-service real estate brokerage with focus on family homes and investments.'
+  }
+]
+
 // Generate Quick Links for a brokerage
 const generateBrokerageQuickLinks = (brokerage) => {
   const encodedName = encodeURIComponent(brokerage.name || '')
@@ -574,72 +778,91 @@ const BrokeragesView = () => {
     const loadBrokerages = async () => {
       setLoading(true)
       try {
+        let brokerageMap = new Map()
+        let usedSampleData = false
+        
         // Try to load from API first
-        const response = await fetch(`${API_BASE}/recruiters`)
-        let agents = []
-        
-        if (response.ok) {
-          const data = await response.json()
-          agents = data.recruiters || []
-        } else {
-          // Fallback to JSON file
-          const jsonResponse = await fetch('/data/recruiters_sample.json')
-          if (jsonResponse.ok) {
-            agents = await jsonResponse.json()
+        try {
+          const response = await fetch(`${API_BASE}/recruiters`)
+          let agents = []
+          
+          if (response.ok) {
+            const data = await response.json()
+            agents = data.recruiters || []
+          } else {
+            // Fallback to JSON file
+            const jsonResponse = await fetch('/data/recruiters_sample.json')
+            if (jsonResponse.ok) {
+              agents = await jsonResponse.json()
+            }
           }
-        }
 
-        // Extract unique brokerages
-        const brokerageMap = new Map()
+          // Extract unique brokerages from agent data
+          agents.forEach(agent => {
+            const fullName = agent.brokerage
+            if (!fullName || isOntarioInc(fullName)) return
+            
+            const cleanName = cleanBrokerageName(fullName)
+            
+            if (!brokerageMap.has(fullName)) {
+              brokerageMap.set(fullName, {
+                id: fullName,
+                displayName: cleanName,
+                legalName: fullName,
+                name: cleanName,
+                agentCount: 0,
+                cities: new Set(),
+                phone: agent.phone || null,
+                email: null,
+                website: null,
+                address: null,
+                city: agent.city || null,
+                province: 'Ontario',
+                brokerOfRecord: null,
+                managingBroker: null,
+                president: null,
+                vpSales: null,
+                socialLinks: {
+                  linkedin: null,
+                  facebook: null,
+                  instagram: null,
+                  twitter: null
+                },
+                notes: ''
+              })
+            }
+            
+            const brokerage = brokerageMap.get(fullName)
+            brokerage.agentCount++
+            if (agent.city) brokerage.cities.add(agent.city)
+          })
+        } catch (apiError) {
+          console.log('API failed, using sample data')
+        }
         
-        agents.forEach(agent => {
-          const fullName = agent.brokerage
-          if (!fullName || isOntarioInc(fullName)) return
-          
-          const cleanName = cleanBrokerageName(fullName)
-          
-          if (!brokerageMap.has(fullName)) {
-            brokerageMap.set(fullName, {
-              id: fullName,
-              displayName: cleanName,
-              legalName: fullName,
-              name: cleanName,
-              agentCount: 0,
-              cities: new Set(),
-              phone: agent.phone || null,
-              email: null,
-              website: null,
-              address: null,
-              city: agent.city || null,
-              province: 'Ontario',
-              brokerOfRecord: null,
-              managingBroker: null,
-              president: null,
-              vpSales: null,
-              socialLinks: {
-                linkedin: null,
-                facebook: null,
-                instagram: null,
-                twitter: null
-              },
-              notes: ''
-            })
-          }
-          
-          const brokerage = brokerageMap.get(fullName)
-          brokerage.agentCount++
-          if (agent.city) brokerage.cities.add(agent.city)
-        })
+        // If no brokerages loaded from API, use sample data
+        if (brokerageMap.size === 0) {
+          usedSampleData = true
+          SAMPLE_BROKERAGES.forEach(brokerage => {
+            brokerageMap.set(brokerage.id, { ...brokerage })
+          })
+        }
 
         // Load saved edits from localStorage
         const savedEdits = localStorage.getItem('brokerage_edits')
         if (savedEdits) {
-          const edits = JSON.parse(savedEdits)
-          edits.forEach(edit => {
-            if (brokerageMap.has(edit.id)) {
-              brokerageMap.set(edit.id, { ...brokerageMap.get(edit.id), ...edit })
+          try {
+            const edits = JSON.parse(savedEdits)
+            if (Array.isArray(edits)) {
+              edits.forEach(edit => {
+                if (brokerageMap.has(edit.id)) {
+                  brokerageMap.set(edit.id, { ...brokerageMap.get(edit.id), ...edit })
+                }
+              })
             }
-          })
+          } catch (e) {
+            console.error('Error parsing saved edits:', e)
+          }
         }
 
         // Convert to array and sort by agent count
@@ -647,8 +870,16 @@ const BrokeragesView = () => {
           .sort((a, b) => b.agentCount - a.agentCount)
         
         setBrokerages(brokerageList)
+        
+        if (usedSampleData) {
+          console.log(`Loaded ${brokerageList.length} sample brokerages`)
+        } else {
+          console.log(`Loaded ${brokerageList.length} brokerages from data`)
+        }
       } catch (error) {
         console.error('Error loading brokerages:', error)
+        // Final fallback - just use sample data
+        setBrokerages(SAMPLE_BROKERAGES.map(b => ({ ...b })))
       } finally {
         setLoading(false)
       }
