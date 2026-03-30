@@ -301,60 +301,55 @@ const SAMPLE_BUILDERS = [
   }
 ]
 
-// Generate Quick Links
+// Generate Quick Links - All use Google Search format
 const generateQuickLinks = (builder) => {
   const searchName = encodeURIComponent(builder.name)
   const cleanPhone = builder.phone ? builder.phone.replace(/\D/g, '') : ''
-  const cleanName = builder.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '-')
-  const websiteDomain = builder.website ? builder.website.replace(/^https?:\/\//, '').replace(/\/$/, '') : ''
   
-  // Helper to safely create URLs
-  const safeUrl = (url) => {
-    if (!url) return null
-    if (url.startsWith('http')) return url
-    return `https://${url}`
-  }
+  // Helper to create Google search URLs
+  const googleSearch = (query) => `https://www.google.com/search?q=${encodeURIComponent(query)}`
   
   return {
     // Primary Links
-    website: safeUrl(builder.website),
+    website: googleSearch(`${builder.name}`),
     phone: cleanPhone ? `tel:${cleanPhone}` : null,
     email: builder.email ? `mailto:${builder.email}` : null,
     
-    // Social Media
-    facebook: builder.facebook ? safeUrl(builder.facebook) : `https://www.facebook.com/search/pages/?q=${searchName}`,
-    linkedin: builder.linkedin ? `https://linkedin.com/company/${builder.linkedin}` : `https://www.linkedin.com/search/results/companies/?keywords=${searchName}`,
-    instagram: builder.instagram ? `https://instagram.com/${builder.instagram.replace('@', '')}` : `https://www.google.com/search?q=${searchName}+instagram`,
+    // Social Media (Google Search format)
+    facebook: googleSearch(`${builder.name} facebook`),
+    linkedin: googleSearch(`${builder.name} linkedin`),
+    instagram: googleSearch(`${builder.name} instagram`),
+    twitter: googleSearch(`${builder.name} twitter`),
     
     // Search & Discovery
-    google: `https://www.google.com/search?q=${searchName}`,
-    googleBuilder: `https://www.google.com/search?q=${searchName}+builder`,
-    googleNews: `https://www.google.com/search?q=${searchName}&tbm=nws`,
+    google: googleSearch(builder.name),
+    googleBuilder: googleSearch(`${builder.name} builder`),
+    googleNews: googleSearch(`${builder.name} news`),
     
     // Maps & Location
     googleMaps: builder.address ? `https://www.google.com/maps/search/${encodeURIComponent(builder.address)}` : null,
     
-    // Builder Platforms
-    livabl: `https://livabl.com/search?q=${searchName}`,
-    tarion: `https://www.google.com/search?q=${searchName}+tarion+warranty`,
-    ohba: `https://www.google.com/search?q=${searchName}+OHBA+Ontario`,
-    homestars: `https://www.google.com/search?q=${searchName}+HomeStars`,
-    bbb: `https://www.bbb.org/ca/search?find_text=${searchName}`,
+    // Builder Platforms (Google Search format)
+    livabl: googleSearch(`${builder.name} livabl`),
+    tarion: googleSearch(`${builder.name} tarion warranty`),
+    ohba: googleSearch(`${builder.name} OHBA Ontario`),
+    homestars: googleSearch(`${builder.name} HomeStars`),
+    bbb: googleSearch(`${builder.name} BBB`),
     
-    // Property & Commercial
-    loopnet: `https://www.loopnet.com/search?q=${searchName}`,
-    costar: `https://www.google.com/search?q=${searchName}+CoStar`,
+    // Property & Commercial (Google Search format)
+    loopnet: googleSearch(`${builder.name} loopnet`),
+    costar: googleSearch(`${builder.name} costar`),
     
     // New Construction
-    newHomes: `https://www.google.com/search?q=${searchName}+new+homes+construction`,
-    pastProjects: `https://www.google.com/search?q=${searchName}+past+projects+developments`,
+    newHomes: googleSearch(`${builder.name} new homes construction`),
+    pastProjects: googleSearch(`${builder.name} past projects developments`),
     
     // Reviews & Ratings
-    reviews: `https://www.google.com/search?q=${searchName}+reviews`,
+    reviews: googleSearch(`${builder.name} reviews`),
     
     // Contact Discovery
-    contactPage: `https://www.google.com/search?q=${searchName}+"contact"`,
-    linkedinPresident: `https://www.google.com/search?q=${searchName}+President+OR+CEO+linkedin`
+    contactPage: googleSearch(`${builder.name} contact`),
+    linkedinPresident: googleSearch(`${builder.name} President CEO linkedin`)
   }
 }
 
@@ -761,6 +756,17 @@ const BuilderCard = ({ builder, onQuickLinksToggle, isExpanded }) => {
       {/* Primary Quick Links - Always Visible */}
       <div className="px-4 pb-3">
         <div className="grid grid-cols-4 gap-2">
+          {/* Google Search */}
+          <a
+            href={links.google}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-col items-center gap-1 p-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 transition-colors group"
+          >
+            <Search className="w-5 h-5 text-blue-500" />
+            <span className="text-[10px] text-text-secondary group-hover:text-blue-400">Google</span>
+          </a>
+          
           {/* Facebook */}
           <a
             href={links.facebook}
@@ -772,26 +778,15 @@ const BuilderCard = ({ builder, onQuickLinksToggle, isExpanded }) => {
             <span className="text-[10px] text-text-secondary group-hover:text-[#1877F2]">FB</span>
           </a>
           
-          {/* Website */}
+          {/* LinkedIn */}
           <a
-            href={links.website}
+            href={links.linkedin}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex flex-col items-center gap-1 p-2 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 transition-colors group"
+            className="flex flex-col items-center gap-1 p-2 rounded-lg bg-[#0A66C2]/10 hover:bg-[#0A66C2]/20 transition-colors group"
           >
-            <Globe className="w-5 h-5 text-purple-500" />
-            <span className="text-[10px] text-text-secondary group-hover:text-purple-400">Web</span>
-          </a>
-          
-          {/* Instagram */}
-          <a
-            href={links.instagram}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex flex-col items-center gap-1 p-2 rounded-lg bg-gradient-to-br from-purple-500/10 to-pink-500/10 hover:from-purple-500/20 hover:to-pink-500/20 transition-colors group"
-          >
-            <Instagram className="w-5 h-5 text-pink-400" />
-            <span className="text-[10px] text-text-secondary group-hover:text-pink-400">IG</span>
+            <Linkedin className="w-5 h-5 text-[#0A66C2]" />
+            <span className="text-[10px] text-text-secondary group-hover:text-[#0A66C2]">LI</span>
           </a>
           
           {/* Call */}
