@@ -83,7 +83,7 @@ const AgentCard = ({ agent, onClick }) => {
   
   const getRealtorCaUrl = () => {
     if (agent.realtorCaUrl) return agent.realtorCaUrl
-    const searchQuery = encodeURIComponent(`${agent.name} realtor.ca`)
+    const searchQuery = encodeURIComponent(`${agent.name} realtor realtor.ca`)
     return `https://www.google.com/search?q=${searchQuery}`
   }
   

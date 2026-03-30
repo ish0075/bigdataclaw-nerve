@@ -12,6 +12,16 @@ import {
   NIAGARA_REGION 
 } from '../utils/ontarioRegions'
 
+// Google "G" Icon
+const GoogleIcon = () => (
+  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+  </svg>
+)
+
 /**
  * Ontario Builder Directory
  * 
@@ -301,28 +311,37 @@ const SAMPLE_BUILDERS = [
   }
 ]
 
-// Generate Quick Links - All use Google Search format
+// Generate Quick Links - Builders: Google + company name + social media
 const generateQuickLinks = (builder) => {
   const searchName = encodeURIComponent(builder.name)
   const cleanPhone = builder.phone ? builder.phone.replace(/\D/g, '') : ''
   
-  // Helper to create Google search URLs
+  // Helper to create Google search URLs with builder company name
   const googleSearch = (query) => `https://www.google.com/search?q=${encodeURIComponent(query)}`
   
   return {
-    // Primary Links
+    // Primary Links - Google search for company name
     website: googleSearch(`${builder.name}`),
     phone: cleanPhone ? `tel:${cleanPhone}` : null,
     email: builder.email ? `mailto:${builder.email}` : null,
     
-    // Social Media (Google Search format)
+    // Main card buttons - Google + builder name + platform
+    google: googleSearch(builder.name),
     facebook: googleSearch(`${builder.name} facebook`),
     linkedin: googleSearch(`${builder.name} linkedin`),
     instagram: googleSearch(`${builder.name} instagram`),
     twitter: googleSearch(`${builder.name} twitter`),
     
+    // Social Media (Google Search format: company name + platform)
+    youtube: googleSearch(`${builder.name} youtube`),
+    tiktok: googleSearch(`${builder.name} tiktok`),
+    
+    // Messaging
+    whatsapp: cleanPhone ? `https://wa.me/${cleanPhone}` : googleSearch(`${builder.name} whatsapp`),
+    messenger: googleSearch(`${builder.name} facebook messenger`),
+    wechat: googleSearch(`${builder.name} wechat`),
+    
     // Search & Discovery
-    google: googleSearch(builder.name),
     googleBuilder: googleSearch(`${builder.name} builder`),
     googleNews: googleSearch(`${builder.name} news`),
     
@@ -349,7 +368,10 @@ const generateQuickLinks = (builder) => {
     
     // Contact Discovery
     contactPage: googleSearch(`${builder.name} contact`),
-    linkedinPresident: googleSearch(`${builder.name} President CEO linkedin`)
+    
+    // Executive search - Google + builder name + president + linkedin
+    linkedinPresident: googleSearch(`${builder.name} President CEO linkedin`),
+    president: googleSearch(`${builder.name} President`)
   }
 }
 
@@ -756,15 +778,15 @@ const BuilderCard = ({ builder, onQuickLinksToggle, isExpanded }) => {
       {/* Primary Quick Links - Always Visible */}
       <div className="px-4 pb-3">
         <div className="grid grid-cols-4 gap-2">
-          {/* Google Search */}
+          {/* Google Search - Primary */}
           <a
             href={links.google}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex flex-col items-center gap-1 p-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 transition-colors group"
+            className="flex flex-col items-center gap-1 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors group"
           >
-            <Search className="w-5 h-5 text-blue-500" />
-            <span className="text-[10px] text-text-secondary group-hover:text-blue-400">Google</span>
+            <GoogleIcon />
+            <span className="text-[10px] text-text-secondary group-hover:text-text-primary">Google</span>
           </a>
           
           {/* Facebook */}

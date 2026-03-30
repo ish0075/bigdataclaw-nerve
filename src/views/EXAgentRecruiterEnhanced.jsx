@@ -5,7 +5,7 @@ import {
   WifiOff, RefreshCw, Facebook, Instagram, Globe, MessageCircle,
   MoreHorizontal, X, CheckCircle, Clock, ArrowUpRight, 
   MessageSquare, Share2, FileText, Video, Link2, Mic,
-  ClipboardPlus
+  ClipboardPlus, Briefcase, Star
 } from 'lucide-react';
 import VoiceInput from '../components/Common/VoiceInput';
 import ObsidianClipForm, { mergeAgentWithClips, getObsidianClip } from '../components/Common/ObsidianClipper';
@@ -69,6 +69,38 @@ const WhatsAppIcon = () => (
   </svg>
 );
 
+// Google "G" Icon
+const GoogleIcon = () => (
+  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+  </svg>
+);
+
+// Clean up brokerage name for display (remove Ontario Inc, numbers, etc.)
+const cleanBrokerageName = (name) => {
+  if (!name) return 'Independent';
+  // Remove Ontario Inc, Ontario Inc., and any numbers/suffixes after Inc
+  return name
+    .replace(/\s*Ontario\s+Inc\.?\s*\d*\s*$/i, '')
+    .replace(/\s*Inc\.?\s*\d*\s*$/i, '')
+    .replace(/\s*Ltd\.?\s*$/i, '')
+    .replace(/\s*Limited\s*$/i, '')
+    .trim();
+};
+
+// Filter out Ontario Inc. brokerages from dropdown
+const filterOntarioIncBrokerages = (brokerageList) => {
+  if (!brokerageList || !Array.isArray(brokerageList)) return [];
+  return brokerageList.filter(name => {
+    if (!name || name === 'All Brokerages') return true;
+    // Skip brokerages ending with Ontario Inc. pattern
+    return !/Ontario\s+Inc\.?\s*\d*$/i.test(name);
+  });
+};
+
 // Generate Quick Links for an agent
 // Uses agent.quickLinks or agent.quick_links from data if available, otherwise generates them
 const generateAgentQuickLinks = (agent) => {
@@ -77,70 +109,34 @@ const generateAgentQuickLinks = (agent) => {
   const encodedBrokerage = encodeURIComponent(agent.brokerage || '');
   const encodedFull = encodeURIComponent(`${cleanName} ${agent.brokerage || ''}`);
   
-  // Handle both camelCase (JSON file) and snake_case (API)
-  const ql = agent.quickLinks || agent.quick_links || null;
-  
-  // If agent has pre-generated quick links from data, use those
-  if (ql) {
-    return {
-      // Main Links (shown on card) - Always use Realtor+platform format for consistency
-      facebook: `https://www.google.com/search?q=${encodedName}+Realtor+facebook`,
-      instagram: `https://www.google.com/search?q=${encodedName}+Realtor+instagram`,
-      realtor: ql.realtorCa || ql.realtor_ca || `https://www.google.com/search?q=${encodedFull}+realtor.ca`,
-      phone: agent.phone ? `tel:${agent.phone}` : null,
-      email: agent.email ? `mailto:${agent.email}` : null,
-      
-      // Expanded Quick Links
-      google: ql.google || `https://www.google.com/search?q=${encodedName}+realtor`,
-      linkedin: ql.linkedin || `https://www.google.com/search?q=${encodedName}+realtor+linked+in`,
-      linkedin_president: `https://www.google.com/search?q=${encodedBrokerage}+President+OR+CEO+linked+in`,
-      twitter: ql.twitter || `https://www.google.com/search?q=${encodedName}+Realtor+twitter`,
-      tiktok: `https://www.google.com/search?q=${encodedName}+Realtor+tiktok`,
-      youtube: `https://www.google.com/search?q=${encodedName}+Realtor+youtube`,
-      
-      // Messaging
-      whatsapp: agent.phone ? `https://wa.me/${agent.phone.replace(/\D/g, '')}` : `https://www.google.com/search?q=${encodedName}+Realtor+WhatsApp`,
-      wechat: `https://www.google.com/search?q=${encodedName}+Realtor+WeChat`,
-      messenger: `https://www.google.com/search?q=${encodedName}+Realtor+facebook+messenger`,
-      
-      // Professional
-      cre: `https://www.google.com/search?q=${encodedFull}+commercial+real+estate`,
-      homes: `https://www.google.com/search?q=${encodedFull}+homes+for+sale`,
-      reviews: ql.reviews || `https://www.google.com/search?q=${encodedName}+Realtor+reviews`,
-      
-      // Contact page search
-      contact: `https://www.google.com/search?q=${encodedBrokerage}+contact`,
-    };
-  }
-  
-  // Otherwise generate all links dynamically
+  // ALWAYS generate links dynamically to ensure consistent format: {name} realtor {platform}
+  // This ensures disambiguation for common names across all platforms
   return {
-    // Main Links (shown on card) - All use Google search for reliability
-    facebook: `https://www.google.com/search?q=${encodedName}+Realtor+facebook`,
-    instagram: `https://www.google.com/search?q=${encodedName}+Realtor+instagram`,
-    realtor: `https://www.google.com/search?q=${encodedFull}+realtor.ca`,
+    // Main Links (shown on card) - All use {name} realtor {platform} format for disambiguation
+    google: `https://www.google.com/search?q=${encodedName}+realtor`,
+    linkedin: `https://www.google.com/search?q=${encodedName}+realtor+linkedin`,
+    facebook: `https://www.google.com/search?q=${encodedName}+realtor+facebook`,
+    instagram: `https://www.google.com/search?q=${encodedName}+realtor+instagram`,
+    realtor: `https://www.google.com/search?q=${encodedName}+realtor+realtor.ca`,
     phone: agent.phone ? `tel:${agent.phone}` : null,
     email: agent.email ? `mailto:${agent.email}` : null,
     
-    // Expanded Quick Links
-    google: `https://www.google.com/search?q=${encodedName}+realtor`,
-    linkedin: agent.linkedin 
-      ? `https://linkedin.com/in/${agent.linkedin}` 
-      : `https://www.google.com/search?q=${encodedName}+realtor+linked+in`,
-    linkedin_president: `https://www.google.com/search?q=${encodedBrokerage}+President+OR+CEO+linked+in`,
-    twitter: `https://www.google.com/search?q=${encodedName}+Realtor+twitter`,
-    tiktok: `https://www.google.com/search?q=${encodedName}+Realtor+tiktok`,
-    youtube: `https://www.google.com/search?q=${encodedName}+Realtor+youtube`,
+    // Expanded Quick Links - Social platforms
+    twitter: `https://www.google.com/search?q=${encodedName}+realtor+twitter`,
+    tiktok: `https://www.google.com/search?q=${encodedName}+realtor+tiktok`,
+    youtube: `https://www.google.com/search?q=${encodedName}+realtor+youtube`,
     
-    // Messaging
-    whatsapp: agent.phone ? `https://wa.me/${agent.phone.replace(/\D/g, '')}` : `https://www.google.com/search?q=${encodedName}+Realtor+WhatsApp`,
-    wechat: `https://www.google.com/search?q=${encodedName}+Realtor+WeChat`,
-    messenger: `https://www.google.com/search?q=${encodedName}+Realtor+facebook+messenger`,
+    // Messaging platforms
+    whatsapp: agent.phone ? `https://wa.me/${agent.phone.replace(/\D/g, '')}` : `https://www.google.com/search?q=${encodedName}+realtor+whatsapp`,
+    wechat: `https://www.google.com/search?q=${encodedName}+realtor+wechat`,
+    messenger: `https://www.google.com/search?q=${encodedName}+realtor+facebook+messenger`,
     
-    // Professional
+    // Professional links
+    linkedin_president: `https://www.google.com/search?q=${encodedBrokerage}+President+OR+CEO+linkedin`,
     cre: `https://www.google.com/search?q=${encodedFull}+commercial+real+estate`,
     homes: `https://www.google.com/search?q=${encodedFull}+homes+for+sale`,
-    reviews: `https://www.google.com/search?q=${encodedName}+Realtor+reviews`,
+    reviews: `https://www.google.com/search?q=${encodedName}+realtor+reviews`,
+    bor: `https://www.google.com/search?q=${encodedBrokerage}+broker+of+record`,
     
     // Contact page search
     contact: `https://www.google.com/search?q=${encodedBrokerage}+contact`,
@@ -202,7 +198,7 @@ const AgentCard = ({ agent, onQuickLinksToggle, isExpanded, onClip }) => {
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="font-semibold text-slate-200 truncate pr-2">{displayName}</h3>
-                <p className="text-sm text-slate-400 truncate">{agent.brokerage || 'Independent'}</p>
+                <p className="text-sm text-slate-400 truncate">{cleanBrokerageName(agent.brokerage)}</p>
               </div>
               {expBadge && (
                 <span className="px-2 py-0.5 bg-slate-700 text-slate-400 text-xs rounded-full flex-shrink-0">
@@ -243,9 +239,31 @@ const AgentCard = ({ agent, onQuickLinksToggle, isExpanded, onClip }) => {
         </div>
       </div>
       
-      {/* Main Action Buttons - Facebook, Realtor.ca, Instagram, Email */}
+      {/* Main Action Buttons - Google Search, LinkedIn, Facebook, Realtor.ca */}
       <div className="px-4 pb-3">
         <div className="grid grid-cols-4 gap-2">
+          {/* Google Search - Primary action */}
+          <a
+            href={links.google}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-col items-center gap-1 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors group"
+          >
+            <GoogleIcon />
+            <span className="text-[10px] text-slate-400 group-hover:text-white">Google</span>
+          </a>
+          
+          {/* LinkedIn */}
+          <a
+            href={links.linkedin}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-col items-center gap-1 p-2 rounded-lg bg-[#0A66C2]/10 hover:bg-[#0A66C2]/20 transition-colors group"
+          >
+            <Linkedin className="w-5 h-5 text-[#0A66C2]" />
+            <span className="text-[10px] text-slate-400 group-hover:text-[#0A66C2]">LinkedIn</span>
+          </a>
+          
           {/* Facebook */}
           <a
             href={links.facebook}
@@ -262,57 +280,11 @@ const AgentCard = ({ agent, onQuickLinksToggle, isExpanded, onClip }) => {
             href={links.realtor}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex flex-col items-center gap-1 p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors group"
+            className="flex flex-col items-center gap-1 p-2 rounded-lg bg-red-600/10 hover:bg-red-600/20 transition-colors group"
           >
-            <Globe className="w-5 h-5 text-red-500" />
-            <span className="text-[10px] text-slate-400 group-hover:text-red-400">Realtor</span>
+            <Globe className="w-5 h-5 text-red-600" />
+            <span className="text-[10px] text-slate-400 group-hover:text-red-500">Realtor</span>
           </a>
-          
-          {/* Instagram */}
-          <a
-            href={links.instagram}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex flex-col items-center gap-1 p-2 rounded-lg bg-gradient-to-br from-purple-500/10 to-pink-500/10 hover:from-purple-500/20 hover:to-pink-500/20 transition-colors group"
-          >
-            <Instagram className="w-5 h-5 text-pink-400" />
-            <span className="text-[10px] text-slate-400 group-hover:text-pink-400">IG</span>
-          </a>
-          
-          {/* Phone or Email or Clip */}
-          {hasPhone ? (
-            <a
-              href={`tel:${mergedAgent.phone}`}
-              className="flex flex-col items-center gap-1 p-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors group relative"
-              title={`Call: ${mergedAgent.phone}`}
-            >
-              <Phone className="w-5 h-5 text-emerald-500" />
-              <span className="text-[10px] text-slate-400 group-hover:text-emerald-400">Call</span>
-              {clipData && (
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-purple-500 rounded-full" title="From Obsidian Clip" />
-              )}
-            </a>
-          ) : mergedAgent.email ? (
-            <button
-              onClick={() => {
-                window.location.href = `mailto:${mergedAgent.email}`;
-              }}
-              className="flex flex-col items-center gap-1 p-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors group w-full"
-              title={`Email: ${mergedAgent.email}`}
-            >
-              <Mail className="w-5 h-5 text-emerald-500" />
-              <span className="text-[10px] text-slate-400 group-hover:text-emerald-400">Email</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => onClip?.(mergedAgent)}
-              className="flex flex-col items-center gap-1 p-2 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 transition-colors group w-full"
-              title="Add contact info from Realtor.ca"
-            >
-              <ClipboardPlus className="w-5 h-5 text-purple-400" />
-              <span className="text-[10px] text-slate-400 group-hover:text-purple-400">Clip</span>
-            </button>
-          )}
         </div>
       </div>
       
@@ -390,6 +362,16 @@ const AgentCard = ({ agent, onQuickLinksToggle, isExpanded, onClip }) => {
               Messaging
             </p>
             <div className="grid grid-cols-3 gap-2">
+              {/* Call - Phone */}
+              {mergedAgent.phone && (
+                <QuickLinkButton 
+                  href={`tel:${mergedAgent.phone}`} 
+                  icon={<Phone className="w-3.5 h-3.5" />} 
+                  label="Call"
+                  color="bg-emerald-500"
+                />
+              )}
+              
               {/* WhatsApp - Direct link if phone, otherwise search */}
               {mergedAgent.phone ? (
                 <QuickLinkButton 
@@ -467,10 +449,10 @@ const AgentCard = ({ agent, onQuickLinksToggle, isExpanded, onClip }) => {
                 fullWidth
               />
               <QuickLinkButton 
-                href={links.reviews} 
-                icon={<FileText className="w-3.5 h-3.5" />} 
-                label="Reviews"
-                color="bg-amber-500"
+                href={links.bor} 
+                icon={<Building className="w-3.5 h-3.5" />} 
+                label="B.O.R."
+                color="bg-amber-600"
                 fullWidth
               />
             </div>
@@ -526,6 +508,222 @@ const QuickLinkButton = ({ href, icon, label, color, fullWidth = false }) => {
   );
 };
 
+// Generate Quick Links for a brokerage
+const generateBrokerageQuickLinks = (brokerage) => {
+  const encodedName = encodeURIComponent(brokerage.cleanName);
+  const encodedFull = encodeURIComponent(brokerage.fullName);
+  
+  return {
+    // Main Links (front card)
+    bor: `https://www.google.com/search?q=${encodedName}+broker+of+record`,
+    realtor: `https://www.google.com/search?q=${encodedName}+realtor.ca`,
+    broker: `https://www.google.com/search?q=${encodedName}+broker`,
+    google: `https://www.google.com/search?q=${encodedName}`,
+    phone: brokerage.phone ? `tel:${brokerage.phone.replace(/\D/g, '')}` : null,
+    
+    // Expanded Quick Links
+    linkedin: `https://www.google.com/search?q=${encodedName}+linkedin`,
+    facebook: `https://www.google.com/search?q=${encodedName}+facebook`,
+    instagram: `https://www.google.com/search?q=${encodedName}+instagram`,
+    website: `https://www.google.com/search?q=${encodedName}+official+website`,
+    
+    // Executive search
+    president: `https://www.google.com/search?q=${encodedName}+President+OR+CEO+linkedin`,
+    careers: `https://www.google.com/search?q=${encodedName}+careers+jobs`,
+    
+    // Reviews and news
+    reviews: `https://www.google.com/search?q=${encodedName}+reviews`,
+    news: `https://www.google.com/search?q=${encodedName}+news`,
+  };
+};
+
+// Brokerage Card Component
+const BrokerageCard = ({ brokerage, isExpanded, onToggle }) => {
+  const links = generateBrokerageQuickLinks(brokerage);
+  
+  return (
+    <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden hover:border-slate-600 transition-colors">
+      {/* Card Header */}
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg font-semibold text-slate-200 truncate">{brokerage.cleanName}</h3>
+            <p className="text-sm text-slate-500 mt-1">
+              {brokerage.agentCount} agent{brokerage.agentCount !== 1 ? 's' : ''}
+              {brokerage.cities.size > 0 && ` • ${Array.from(brokerage.cities).slice(0, 3).join(', ')}`}
+            </p>
+          </div>
+          <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+            <Building className="w-5 h-5 text-blue-400" />
+          </div>
+        </div>
+        
+        {/* Front Card Buttons */}
+        <div className="grid grid-cols-4 gap-2 mt-4">
+          {/* B.O.R Button */}
+          <a
+            href={links.bor}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 px-2 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-white text-xs font-medium transition-colors"
+            title="Find Broker of Record"
+          >
+            <span className="font-bold">B.O.R</span>
+          </a>
+          
+          {/* Realtor.ca Button */}
+          <a
+            href={links.realtor}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 px-2 py-2 bg-red-600 hover:bg-red-500 rounded-lg text-white text-xs font-medium transition-colors"
+            title="Search on Realtor.ca"
+          >
+            <span>Realtor</span>
+          </a>
+          
+          {/* Broker Button */}
+          <a
+            href={links.broker}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 px-2 py-2 bg-amber-600 hover:bg-amber-500 rounded-lg text-white text-xs font-medium transition-colors"
+            title="Search Broker"
+          >
+            <span>Broker</span>
+          </a>
+          
+          {/* Phone or Google Button */}
+          {links.phone ? (
+            <a
+              href={links.phone}
+              className="flex items-center justify-center gap-2 px-2 py-2 bg-green-600 hover:bg-green-500 rounded-lg text-white text-xs font-medium transition-colors"
+              title="Call"
+            >
+              <Phone className="w-4 h-4" />
+            </a>
+          ) : (
+            <a
+              href={links.google}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 px-2 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-white text-xs font-medium transition-colors"
+              title="Google Search"
+            >
+              <GoogleIcon />
+            </a>
+          )}
+        </div>
+        
+        {/* Quick Links Toggle */}
+        <button
+          onClick={onToggle}
+          className="flex items-center justify-center gap-2 w-full mt-3 px-3 py-2 bg-slate-700/50 hover:bg-slate-700 rounded-lg text-slate-400 text-xs transition-colors"
+        >
+          <MoreHorizontal className="w-4 h-4" />
+          <span>{isExpanded ? 'Less' : 'More'} Quick Links</span>
+          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </button>
+      </div>
+      
+      {/* Expanded Quick Links */}
+      {isExpanded && (
+        <div className="px-4 pb-4 border-t border-slate-700/50 pt-3">
+          <div className="grid grid-cols-2 gap-2">
+            {/* B.O.R */}
+            <QuickLinkButton
+              href={links.bor}
+              icon={<Building className="w-4 h-4" />}
+              label="B.O.R"
+              color="bg-purple-600"
+            />
+            
+            {/* Realtor.ca */}
+            <QuickLinkButton
+              href={links.realtor}
+              icon={<Globe className="w-4 h-4" />}
+              label="Realtor.ca"
+              color="bg-red-600"
+            />
+            
+            {/* Broker */}
+            <QuickLinkButton
+              href={links.broker}
+              icon={<Building className="w-4 h-4" />}
+              label="Broker"
+              color="bg-amber-600"
+            />
+            
+            {/* Google */}
+            <QuickLinkButton
+              href={links.google}
+              icon={<GoogleIcon />}
+              label="Google"
+              color="bg-slate-600"
+            />
+            
+            {/* LinkedIn */}
+            <QuickLinkButton
+              href={links.linkedin}
+              icon={<Linkedin className="w-4 h-4" />}
+              label="LinkedIn"
+              color="bg-blue-700"
+            />
+            
+            {/* Facebook */}
+            <QuickLinkButton
+              href={links.facebook}
+              icon={<Facebook className="w-4 h-4" />}
+              label="Facebook"
+              color="bg-blue-600"
+            />
+            
+            {/* Instagram */}
+            <QuickLinkButton
+              href={links.instagram}
+              icon={<Instagram className="w-4 h-4" />}
+              label="Instagram"
+              color="bg-pink-600"
+            />
+            
+            {/* President/CEO */}
+            <QuickLinkButton
+              href={links.president}
+              icon={<Users className="w-4 h-4" />}
+              label="President"
+              color="bg-amber-600"
+            />
+            
+            {/* Website */}
+            <QuickLinkButton
+              href={links.website}
+              icon={<Globe className="w-4 h-4" />}
+              label="Website"
+              color="bg-teal-600"
+            />
+            
+            {/* Careers */}
+            <QuickLinkButton
+              href={links.careers}
+              icon={<Briefcase className="w-4 h-4" />}
+              label="Careers"
+              color="bg-indigo-600"
+            />
+            
+            {/* Reviews */}
+            <QuickLinkButton
+              href={links.reviews}
+              icon={<Star className="w-4 h-4" />}
+              label="Reviews"
+              color="bg-yellow-600"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Main Component
 const EXAgentRecruiterEnhanced = () => {
   const [agents, setAgents] = useState([]);
@@ -554,6 +752,7 @@ const EXAgentRecruiterEnhanced = () => {
   const [expandedGroups, setExpandedGroups] = useState({});
   const [expandedQuickLinks, setExpandedQuickLinks] = useState({});
   const [clipAgent, setClipAgent] = useState(null); // For Obsidian clip modal
+  const [viewMode, setViewMode] = useState('agents'); // 'agents' | 'brokerages'
 
   // Check API health
   useEffect(() => {
@@ -567,7 +766,7 @@ const EXAgentRecruiterEnhanced = () => {
         fetch(API_ENDPOINTS.filterOptions)
           .then(r => r.json())
           .then(data => {
-            setBrokerages(['All Brokerages', ...data.brokerages]);
+            setBrokerages(['All Brokerages', ...filterOntarioIncBrokerages(data.brokerages)]);
             setStatuses(['All Status', ...data.statuses]);
           })
           .catch(console.error);
@@ -582,7 +781,7 @@ const EXAgentRecruiterEnhanced = () => {
         fetch('/data/recruiters_meta.json')
           .then(r => r.json())
           .then(data => {
-            setBrokerages(['All Brokerages', ...(data.brokerages || [])]);
+            setBrokerages(['All Brokerages', ...filterOntarioIncBrokerages(data.brokerages || [])]);
             setStatuses(['All Status', 'new', 'contacted', 'engaged', 'converted', 'archived']);
             setStats({
               total: data.total || 0,
@@ -598,13 +797,10 @@ const EXAgentRecruiterEnhanced = () => {
       });
   }, []);
 
-  // Build effective search query
+  // Build effective search query (name/brokerage/email search only)
   const effectiveSearch = useMemo(() => {
-    const parts = [];
-    if (searchQuery) parts.push(searchQuery);
-    if (selectedCity !== 'All Cities') parts.push(selectedCity);
-    return parts.join(' ').trim();
-  }, [searchQuery, selectedCity]);
+    return searchQuery.trim();
+  }, [searchQuery]);
 
   // Filter function
   const filterJsonData = useCallback((data) => {
@@ -636,6 +832,12 @@ const EXAgentRecruiterEnhanced = () => {
       results = results.filter(agent => agent.status === selectedStatus);
     }
     
+    if (selectedCity !== 'All Cities') {
+      results = results.filter(agent => 
+        agent.city && agent.city.toLowerCase() === selectedCity.toLowerCase()
+      );
+    }
+    
     // Sort: Non-EXP agents first, EXP agents last
     results.sort((a, b) => {
       const aIsExp = isExpAgent(a);
@@ -646,7 +848,7 @@ const EXAgentRecruiterEnhanced = () => {
     });
     
     return results;
-  }, [effectiveSearch, selectedBrokerage, selectedStatus]);
+  }, [effectiveSearch, selectedBrokerage, selectedStatus, selectedCity]);
 
   // Load recruiters
   useEffect(() => {
@@ -665,6 +867,7 @@ const EXAgentRecruiterEnhanced = () => {
         if (effectiveSearch) params.append('search', effectiveSearch);
         if (selectedBrokerage !== 'All Brokerages') params.append('brokerage', selectedBrokerage);
         if (selectedStatus !== 'All Status') params.append('status', selectedStatus);
+        if (selectedCity !== 'All Cities') params.append('city', selectedCity);
         
         try {
           const r = await fetch(`${API_ENDPOINTS.recruiters}?${params}`);
@@ -810,6 +1013,37 @@ const EXAgentRecruiterEnhanced = () => {
     fullJsonRef.current = null;
     setLoading(true);
   };
+
+  // Extract unique brokerages for Brokerages view (filter out Ontario Inc. brokerages)
+  const uniqueBrokerages = useMemo(() => {
+    const brokerageMap = new Map();
+    
+    agents.forEach(agent => {
+      const fullName = agent.brokerage;
+      if (!fullName) return;
+      
+      // Skip Ontario Inc. brokerages
+      if (/Ontario\s+Inc\.?\s*\d*$/i.test(fullName)) return;
+      
+      const cleanName = cleanBrokerageName(fullName);
+      if (!brokerageMap.has(fullName)) {
+        brokerageMap.set(fullName, {
+          fullName,
+          cleanName,
+          agentCount: 0,
+          cities: new Set(),
+          phone: agent.phone || null
+        });
+      }
+      const data = brokerageMap.get(fullName);
+      data.agentCount++;
+      if (agent.city) data.cities.add(agent.city);
+    });
+    
+    // Convert to array and sort by agent count
+    return Array.from(brokerageMap.values())
+      .sort((a, b) => b.agentCount - a.agentCount);
+  }, [agents]);
 
   const totalPages = Math.ceil(totalAgents / pageSize);
 
@@ -980,7 +1214,11 @@ const EXAgentRecruiterEnhanced = () => {
               onChange={(e) => setSelectedBrokerage(e.target.value)}
               className="px-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-blue-500"
             >
-              {brokerages.map(b => <option key={b} value={b}>{b}</option>)}
+              {brokerages.map(b => (
+                <option key={b} value={b}>
+                  {b === 'All Brokerages' ? b : cleanBrokerageName(b)}
+                </option>
+              ))}
             </select>
             <select
               value={selectedCity}
@@ -1000,22 +1238,51 @@ const EXAgentRecruiterEnhanced = () => {
         </div>
       </div>
 
-      {/* Group By Tabs & Voice Commands */}
+      {/* View Mode & Group By Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2 bg-slate-800/50 p-1 rounded-xl border border-slate-700 w-fit">
-          {['brokerage', 'city', 'status'].map(group => (
+        <div className="flex items-center gap-2">
+          {/* Main View Toggle */}
+          <div className="flex items-center gap-2 bg-slate-800/50 p-1 rounded-xl border border-slate-700 w-fit">
             <button
-              key={group}
-              onClick={() => setActiveGroup(group)}
+              onClick={() => setViewMode('agents')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeGroup === group
+                viewMode === 'agents'
                   ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              By {group.charAt(0).toUpperCase() + group.slice(1)}
+              Agents
             </button>
-          ))}
+            <button
+              onClick={() => setViewMode('brokerages')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                viewMode === 'brokerages'
+                  ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/25'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Brokerages
+            </button>
+          </div>
+          
+          {/* Group By (only in agents mode) */}
+          {viewMode === 'agents' && (
+            <div className="flex items-center gap-2 bg-slate-800/50 p-1 rounded-xl border border-slate-700 w-fit">
+              {['brokerage', 'city', 'status'].map(group => (
+                <button
+                  key={group}
+                  onClick={() => setActiveGroup(group)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    activeGroup === group
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  By {group.charAt(0).toUpperCase() + group.slice(1)}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         
         {/* Voice Commands Hint */}
@@ -1028,8 +1295,12 @@ const EXAgentRecruiterEnhanced = () => {
       {/* Results Count */}
       <div className="flex items-center justify-between">
         <p className="text-slate-400">
-          Showing {agents.length.toLocaleString()} of {totalAgents.toLocaleString()} agents
-          {effectiveSearch && <span className="text-blue-400 ml-2">"{effectiveSearch}"</span>}
+          {viewMode === 'agents' ? (
+            <>Showing {agents.length.toLocaleString()} of {totalAgents.toLocaleString()} agents
+            {effectiveSearch && <span className="text-blue-400 ml-2">"{effectiveSearch}"</span>}</>
+          ) : (
+            <>Showing {uniqueBrokerages.length} brokerages (Ontario Inc. excluded)</>
+          )}
         </p>
         
         {/* Pagination */}
@@ -1063,7 +1334,22 @@ const EXAgentRecruiterEnhanced = () => {
         </div>
       </div>
 
+      {/* Brokerages View */}
+      {viewMode === 'brokerages' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {uniqueBrokerages.map((brokerage) => (
+            <BrokerageCard
+              key={brokerage.fullName}
+              brokerage={brokerage}
+              isExpanded={expandedQuickLinks[brokerage.fullName]}
+              onToggle={() => toggleQuickLinks(brokerage.fullName)}
+            />
+          ))}
+        </div>
+      )}
+
       {/* Agent Groups */}
+      {viewMode === 'agents' && (
       <div className="space-y-4">
         {groupedAgents.map(([groupName, groupAgents]) => {
           const expanded = expandedGroups[groupName] !== false;
@@ -1117,13 +1403,23 @@ const EXAgentRecruiterEnhanced = () => {
           );
         })}
       </div>
+      )}
       
-      {/* Empty State */}
-      {groupedAgents.length === 0 && (
+      {/* Empty State for Agents */}
+      {viewMode === 'agents' && groupedAgents.length === 0 && (
         <div className="text-center py-16">
           <Users className="w-16 h-16 text-slate-600 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-slate-400">No agents found</h3>
           <p className="text-slate-500 mt-1">Try adjusting your search or filters</p>
+        </div>
+      )}
+
+      {/* Empty State for Brokerages */}
+      {viewMode === 'brokerages' && uniqueBrokerages.length === 0 && (
+        <div className="text-center py-16">
+          <Building className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-slate-400">No brokerages found</h3>
+          <p className="text-slate-500 mt-1">All brokerages may be Ontario Inc. entities</p>
         </div>
       )}
 
