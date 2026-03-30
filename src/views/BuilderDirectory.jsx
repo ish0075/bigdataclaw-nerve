@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { 
   HardHat, Search, MapPin, Phone, Mail, Globe, Facebook, Linkedin,
   ExternalLink, ChevronDown, ChevronUp, Building2, Filter,
-  Download, X, Home, Star, Map as MapIcon, MessageCircle
+  Download, X, Home, Star, Map as MapIcon, MessageCircle,
+  Instagram, MoreHorizontal, Share2, MessageSquare
 } from 'lucide-react'
 import { 
   ONTARIO_REGIONS, 
@@ -41,8 +42,11 @@ const BUILDER_TYPES = [
   'Active Adult Community Builder'
 ]
 
-// Sample Ontario builders (20 samples, expandable to 5000+)
-const ONTARIO_BUILDERS = [
+// Import builder data from JSON
+import buildersData from '../builders_data.json'
+
+// Sample Ontario builders (fallback)
+const SAMPLE_BUILDERS = [
   {
     id: '1',
     name: 'Mattamy Homes',
@@ -301,35 +305,95 @@ const ONTARIO_BUILDERS = [
 const generateQuickLinks = (builder) => {
   const searchName = encodeURIComponent(builder.name)
   const cleanPhone = builder.phone ? builder.phone.replace(/\D/g, '') : ''
-  const cleanName = builder.name.toLowerCase().replace(/\s+/g, '-')
+  const cleanName = builder.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '-')
+  const websiteDomain = builder.website ? builder.website.replace(/^https?:\/\//, '').replace(/\/$/, '') : ''
+  
+  // Helper to safely create URLs
+  const safeUrl = (url) => {
+    if (!url) return null
+    if (url.startsWith('http')) return url
+    return `https://${url}`
+  }
   
   return {
-    website: `https://${builder.website}`,
+    // Primary Links
+    website: safeUrl(builder.website),
     phone: cleanPhone ? `tel:${cleanPhone}` : null,
-    email: `mailto:${builder.email}`,
-    facebook: builder.facebook ? `https://facebook.com/${builder.facebook}` : `https://www.facebook.com/search/pages/?q=${searchName}`,
+    email: builder.email ? `mailto:${builder.email}` : null,
+    
+    // Social Media
+    facebook: builder.facebook ? safeUrl(builder.facebook) : `https://www.facebook.com/search/pages/?q=${searchName}`,
     linkedin: builder.linkedin ? `https://linkedin.com/company/${builder.linkedin}` : `https://www.linkedin.com/search/results/companies/?keywords=${searchName}`,
-    instagram: builder.instagram ? `https://instagram.com/${builder.instagram.replace('@', '')}` : null,
-    google: `https://www.google.com/search?q=${searchName}+builder`,
-    googleMaps: `https://www.google.com/maps/search/${encodeURIComponent(builder.address)}`,
-    livabl: `https://www.livabl.com/builders/${cleanName}`,
-    tarion: `https://www.tarion.com/find-a-builder/${cleanName}`,
-    ohba: `https://www.ohba.ca/members/?search=${searchName}`,
-    homestars: `https://homestars.com/companies/${cleanName}`,
-    bbb: `https://www.bbb.org/ca/search?find_text=${searchName}`
+    instagram: builder.instagram ? `https://instagram.com/${builder.instagram.replace('@', '')}` : `https://www.google.com/search?q=${searchName}+instagram`,
+    
+    // Search & Discovery
+    google: `https://www.google.com/search?q=${searchName}`,
+    googleBuilder: `https://www.google.com/search?q=${searchName}+builder`,
+    googleNews: `https://www.google.com/search?q=${searchName}&tbm=nws`,
+    
+    // Maps & Location
+    googleMaps: builder.address ? `https://www.google.com/maps/search/${encodeURIComponent(builder.address)}` : null,
+    
+    // Builder Platforms
+    livabl: `https://livabl.com/search?q=${searchName}`,
+    tarion: `https://www.google.com/search?q=${searchName}+tarion+warranty`,
+    ohba: `https://www.google.com/search?q=${searchName}+OHBA+Ontario`,
+    homestars: `https://www.google.com/search?q=${searchName}+HomeStars`,
+    bbb: `https://www.bbb.org/ca/search?find_text=${searchName}`,
+    
+    // Property & Commercial
+    loopnet: `https://www.loopnet.com/search?q=${searchName}`,
+    costar: `https://www.google.com/search?q=${searchName}+CoStar`,
+    
+    // New Construction
+    newHomes: `https://www.google.com/search?q=${searchName}+new+homes+construction`,
+    pastProjects: `https://www.google.com/search?q=${searchName}+past+projects+developments`,
+    
+    // Reviews & Ratings
+    reviews: `https://www.google.com/search?q=${searchName}+reviews`,
+    
+    // Contact Discovery
+    contactPage: `https://www.google.com/search?q=${searchName}+"contact"`,
+    linkedinPresident: `https://www.google.com/search?q=${searchName}+President+OR+CEO+linkedin`
   }
 }
 
+// Quick Link Button Component
+const QuickLinkButton = ({ href, icon, label, color, fullWidth = false }) => {
+  const isMailto = href?.startsWith('mailto:');
+  const isTel = href?.startsWith('tel:');
+  
+  // Don't render if no href
+  if (!href) return null;
+  
+  return (
+    <a
+      href={href}
+      target={isMailto || isTel ? undefined : '_blank'}
+      rel={isMailto || isTel ? undefined : 'noopener noreferrer'}
+      className={`
+        flex items-center justify-center gap-2 px-2 py-2 rounded-lg text-white text-[10px] font-medium
+        ${color} hover:opacity-90 transition-opacity whitespace-nowrap
+        ${fullWidth ? 'w-full' : 'min-w-0'}
+      `}
+      title={label}
+    >
+      <span className="flex-shrink-0">{icon}</span>
+      <span className="truncate">{label}</span>
+    </a>
+  );
+};
+
 const BuilderDirectory = () => {
-  // State
-  const [builders] = useState(ONTARIO_BUILDERS)
+  // State - use imported JSON data (4,149 builders!)
+  const [builders] = useState(buildersData.length > 0 ? buildersData : SAMPLE_BUILDERS)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterRegion, setFilterRegion] = useState('all')
+  const [displayLimit, setDisplayLimit] = useState(100) // Limit initial display
   const [filterCity, setFilterCity] = useState('all')
   const [filterType, setFilterType] = useState('all')
   const [expandedGroups, setExpandedGroups] = useState({})
-  const [selectedBuilder, setSelectedBuilder] = useState(null)
-  const [showQuickLinks, setShowQuickLinks] = useState(false)
+  const [expandedQuickLinks, setExpandedQuickLinks] = useState({})
 
   // Get available regions (Ontario only)
   const regions = useMemo(() => {
@@ -364,15 +428,20 @@ const BuilderDirectory = () => {
     })
   }, [builders, searchQuery, filterRegion, filterCity, filterType])
 
+  // Limit builders for display performance
+  const limitedBuilders = useMemo(() => {
+    return filteredBuilders.slice(0, displayLimit)
+  }, [filteredBuilders, displayLimit])
+
   // Group by region then city
   const groupedBuilders = useMemo(() => {
-    return filteredBuilders.reduce((acc, builder) => {
+    return limitedBuilders.reduce((acc, builder) => {
       if (!acc[builder.region]) acc[builder.region] = {}
       if (!acc[builder.region][builder.city]) acc[builder.region][builder.city] = []
       acc[builder.region][builder.city].push(builder)
       return acc
     }, {})
-  }, [filteredBuilders])
+  }, [limitedBuilders])
 
   // Toggle group expansion
   const toggleGroup = (key) => {
@@ -381,13 +450,22 @@ const BuilderDirectory = () => {
 
   const isGroupExpanded = (key) => expandedGroups[key] !== false
 
+  // Toggle quick links expansion
+  const toggleQuickLinks = (builderId) => {
+    setExpandedQuickLinks(prev => ({
+      ...prev,
+      [builderId]: !prev[builderId]
+    }))
+  }
+
   // Stats
   const stats = useMemo(() => ({
     total: builders.length,
-    filtered: filteredBuilders.length,
+    filtered: limitedBuilders.length,
+    totalFiltered: filteredBuilders.length,
     regions: regions.length,
     cities: [...new Set(builders.map(b => b.city))].length
-  }), [builders, filteredBuilders, regions])
+  }), [builders, limitedBuilders, filteredBuilders, regions])
 
   // Export
   const handleExport = () => {
@@ -452,11 +530,26 @@ const BuilderDirectory = () => {
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
             <input
               type="text"
-              placeholder="Search builders by name..."
+              placeholder="Search builders by name... (Press Enter)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-bg-input border border-border-subtle rounded-lg text-sm"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setExpandedQuickLinks({})
+                }
+              }}
+              className="w-full pl-10 pr-20 py-2 bg-bg-input border border-border-subtle rounded-lg text-sm"
             />
+            {/* Search Button */}
+            <button
+              onClick={() => {
+                setExpandedQuickLinks({})
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-accent-blue hover:bg-accent-blue/80 text-white text-xs font-medium rounded-md transition-colors flex items-center gap-1"
+            >
+              <Search className="w-3 h-3" />
+              Search
+            </button>
           </div>
           
           {/* Region Filter */}
@@ -538,7 +631,7 @@ const BuilderDirectory = () => {
       {/* Results Count */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-secondary">
-          Showing <span className="font-medium text-text-primary">{filteredBuilders.length}</span> builders
+          Showing <span className="font-medium text-text-primary">{limitedBuilders.length}</span> of <span className="font-medium text-text-primary">{filteredBuilders.length}</span> builders
           {filterRegion !== 'all' && <span> in <span className="font-medium text-accent-blue">{filterRegion}</span></span>}
           {filterCity !== 'all' && <span>, <span className="font-medium text-accent-green">{filterCity}</span></span>}
           {filterType !== 'all' && <span> • <span className="font-medium text-accent-purple">{filterType}</span></span>}
@@ -586,10 +679,8 @@ const BuilderDirectory = () => {
                           <BuilderCard 
                             key={builder.id} 
                             builder={builder}
-                            onQuickLinks={() => {
-                              setSelectedBuilder(builder)
-                              setShowQuickLinks(true)
-                            }}
+                            onQuickLinksToggle={toggleQuickLinks}
+                            isExpanded={expandedQuickLinks[builder.id]}
                           />
                         ))}
                       </div>
@@ -602,6 +693,18 @@ const BuilderDirectory = () => {
         ))}
       </div>
 
+      {/* Load More Button */}
+      {filteredBuilders.length > displayLimit && (
+        <div className="flex justify-center py-4">
+          <button 
+            onClick={() => setDisplayLimit(prev => prev + 100)}
+            className="btn-secondary flex items-center gap-2"
+          >
+            Load More Builders ({filteredBuilders.length - displayLimit} remaining)
+          </button>
+        </div>
+      )}
+
       {/* Empty State */}
       {filteredBuilders.length === 0 && (
         <div className="card p-12 text-center">
@@ -611,23 +714,16 @@ const BuilderDirectory = () => {
         </div>
       )}
 
-      {/* Quick Links Modal */}
-      {showQuickLinks && selectedBuilder && (
-        <QuickLinksModal 
-          builder={selectedBuilder}
-          onClose={() => setShowQuickLinks(false)}
-        />
-      )}
     </div>
   )
 }
 
 // Builder Card Component
-const BuilderCard = ({ builder, onQuickLinks }) => {
+const BuilderCard = ({ builder, onQuickLinksToggle, isExpanded }) => {
   const links = generateQuickLinks(builder)
   
   return (
-    <div className="p-4 rounded-lg border border-border-subtle hover:border-accent-orange/50 transition-all bg-bg-card">
+    <div className="p-4 rounded-lg border border-border-subtle hover:border-accent-orange/50 transition-all bg-bg-card overflow-hidden">
       {/* Header */}
       <div className="flex items-start gap-3 mb-3">
         <div className="w-12 h-12 rounded-xl bg-accent-orange/20 flex items-center justify-center text-2xl">
@@ -663,166 +759,253 @@ const BuilderCard = ({ builder, onQuickLinks }) => {
       </div>
 
       {/* Primary Quick Links - Always Visible */}
-      <div className="grid grid-cols-4 gap-2 mb-3">
-        {/* Facebook */}
-        <a
-          href={links.facebook}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex flex-col items-center gap-1 p-2 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-colors"
-          title="Facebook"
-        >
-          <Facebook className="w-5 h-5" />
-          <span className="text-xs">FB</span>
-        </a>
-        
-        {/* LinkedIn */}
-        <a
-          href={links.linkedin}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex flex-col items-center gap-1 p-2 rounded-lg bg-blue-700/10 text-blue-600 hover:bg-blue-700/20 transition-colors"
-          title="LinkedIn"
-        >
-          <Linkedin className="w-5 h-5" />
-          <span className="text-xs">LI</span>
-        </a>
-        
-        {/* Website */}
-        <a
-          href={links.website}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex flex-col items-center gap-1 p-2 rounded-lg bg-purple-500/10 text-purple-500 hover:bg-purple-500/20 transition-colors"
-          title="Website"
-        >
-          <Globe className="w-5 h-5" />
-          <span className="text-xs">Web</span>
-        </a>
-        
-        {/* Call */}
-        <a
-          href={links.phone}
-          className="flex flex-col items-center gap-1 p-2 rounded-lg bg-green-500/10 text-green-500 hover:bg-green-500/20 transition-colors"
-          title="Call"
-        >
-          <Phone className="w-5 h-5" />
-          <span className="text-xs">Call</span>
-        </a>
-      </div>
-
-      {/* Secondary Actions */}
-      <div className="flex items-center gap-2">
-        <a 
-          href={`mailto:${builder.email}`}
-          className="flex-1 py-2 text-xs font-medium text-center rounded-lg bg-bg-input text-text-secondary hover:bg-bg-hover transition-colors flex items-center justify-center gap-1"
-        >
-          <Mail className="w-3 h-3" />
-          Email
-        </a>
-        <button 
-          onClick={onQuickLinks}
-          className="flex-1 py-2 text-xs font-medium text-center rounded-lg bg-accent-orange/10 text-accent-orange hover:bg-accent-orange/20 transition-colors flex items-center justify-center gap-1"
-        >
-          <ExternalLink className="w-3 h-3" />
-          More Links
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// Quick Links Modal
-const QuickLinksModal = ({ builder, onClose }) => {
-  const links = generateQuickLinks(builder)
-  
-  const quickLinks = [
-    { name: 'Website', icon: Globe, url: links.website, color: 'bg-purple-500', textColor: 'text-purple-500' },
-    { name: 'Phone', icon: Phone, url: links.phone, color: 'bg-green-500', textColor: 'text-green-500' },
-    { name: 'Email', icon: Mail, url: links.email, color: 'bg-blue-500', textColor: 'text-blue-500' },
-    { name: 'Facebook', icon: Facebook, url: links.facebook, color: 'bg-blue-600', textColor: 'text-blue-600' },
-    { name: 'LinkedIn', icon: Linkedin, url: links.linkedin, color: 'bg-blue-700', textColor: 'text-blue-700' },
-    { name: 'Instagram', icon: Star, url: links.instagram, color: 'bg-pink-500', textColor: 'text-pink-500', show: !!links.instagram },
-    { name: 'Google Maps', icon: MapIcon, url: links.googleMaps, color: 'bg-red-500', textColor: 'text-red-500' },
-    { name: 'LIVABL', icon: Home, url: links.livabl, color: 'bg-purple-600', textColor: 'text-purple-600' },
-    { name: 'Tarion', icon: Star, url: links.tarion, color: 'bg-orange-500', textColor: 'text-orange-500' },
-    { name: 'HomeStars', icon: Star, url: links.homestars, color: 'bg-yellow-500', textColor: 'text-yellow-500' },
-    { name: 'OHBA', icon: Building2, url: links.ohba, color: 'bg-red-600', textColor: 'text-red-600' },
-    { name: 'Google Search', icon: Search, url: links.google, color: 'bg-gray-600', textColor: 'text-gray-400' }
-  ].filter(l => l.show !== false)
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="card w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div className="p-5 border-b border-border-subtle">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-xl bg-accent-orange/20 flex items-center justify-center text-3xl">
-                {builder.logo}
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold text-text-primary">{builder.name}</h3>
-                <p className="text-text-secondary">{builder.type}</p>
-                <div className="flex items-center gap-2 mt-1 text-sm text-text-muted">
-                  <MapPin className="w-3 h-3" />
-                  {builder.city}, {builder.region}
-                </div>
-              </div>
-            </div>
-            <button onClick={onClose} className="p-2 hover:bg-bg-input rounded-lg">
-              <X className="w-5 h-5 text-text-muted" />
-            </button>
-          </div>
+      <div className="px-4 pb-3">
+        <div className="grid grid-cols-4 gap-2">
+          {/* Facebook */}
+          <a
+            href={links.facebook}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-col items-center gap-1 p-2 rounded-lg bg-[#1877F2]/10 hover:bg-[#1877F2]/20 transition-colors group"
+          >
+            <Facebook className="w-5 h-5 text-[#1877F2]" />
+            <span className="text-[10px] text-text-secondary group-hover:text-[#1877F2]">FB</span>
+          </a>
+          
+          {/* Website */}
+          <a
+            href={links.website}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-col items-center gap-1 p-2 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 transition-colors group"
+          >
+            <Globe className="w-5 h-5 text-purple-500" />
+            <span className="text-[10px] text-text-secondary group-hover:text-purple-400">Web</span>
+          </a>
+          
+          {/* Instagram */}
+          <a
+            href={links.instagram}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-col items-center gap-1 p-2 rounded-lg bg-gradient-to-br from-purple-500/10 to-pink-500/10 hover:from-purple-500/20 hover:to-pink-500/20 transition-colors group"
+          >
+            <Instagram className="w-5 h-5 text-pink-400" />
+            <span className="text-[10px] text-text-secondary group-hover:text-pink-400">IG</span>
+          </a>
+          
+          {/* Call */}
+          <a
+            href={links.phone}
+            className="flex flex-col items-center gap-1 p-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors group"
+            title={builder.phone ? `Call: ${builder.phone}` : 'No phone'}
+          >
+            <Phone className="w-5 h-5 text-emerald-500" />
+            <span className="text-[10px] text-text-secondary group-hover:text-emerald-400">Call</span>
+          </a>
         </div>
-        
-        {/* Quick Links Grid */}
-        <div className="p-5">
-          <p className="text-sm font-medium text-text-secondary mb-4">Quick Links - Connect Instantly</p>
-          <div className="grid grid-cols-3 gap-3">
-            {quickLinks.map((link) => {
-              const Icon = link.icon
-              return (
-                <a 
-                  key={link.name}
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`flex flex-col items-center gap-2 p-4 rounded-lg border border-border-subtle hover:border-accent-blue hover:bg-accent-blue/5 transition-all group`}
-                >
-                  <div className={`w-10 h-10 rounded-lg ${link.color} flex items-center justify-center text-white group-hover:scale-110 transition-transform`}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <span className={`text-sm font-medium ${link.textColor}`}>{link.name}</span>
-                </a>
-              )
-            })}
+      </div>
+      
+      {/* Expand Quick Links Button */}
+      <button
+        onClick={() => onQuickLinksToggle(builder.id)}
+        className="w-full py-2 bg-bg-input/50 hover:bg-bg-input border-t border-border-subtle flex items-center justify-center gap-2 text-xs text-text-muted hover:text-text-secondary transition-colors"
+      >
+        {isExpanded ? (
+          <>
+            <ChevronUp className="w-4 h-4" />
+            Hide Quick Links
+          </>
+        ) : (
+          <>
+            <MoreHorizontal className="w-4 h-4" />
+            Quick Links
+          </>
+        )}
+      </button>
+      
+      {/* Expanded Quick Links Section */}
+      {isExpanded && (
+        <div className="border-t border-border-subtle bg-bg-input/30 p-4 space-y-4">
+          {/* Primary Quick Links */}
+          <div>
+            <p className="text-xs font-medium text-text-muted uppercase tracking-wider mb-2 flex items-center gap-2">
+              <ExternalLink className="w-3 h-3" />
+              Primary Links
+            </p>
+            <div className="grid grid-cols-4 gap-2">
+              {links.website && (
+                <QuickLinkButton 
+                  href={links.website} 
+                  icon={<Globe className="w-3.5 h-3.5" />} 
+                  label="Website"
+                  color="bg-purple-500"
+                />
+              )}
+              {links.phone && (
+                <QuickLinkButton 
+                  href={links.phone} 
+                  icon={<Phone className="w-3.5 h-3.5" />} 
+                  label="Call"
+                  color="bg-green-500"
+                />
+              )}
+              {links.email && (
+                <QuickLinkButton 
+                  href={links.email} 
+                  icon={<Mail className="w-3.5 h-3.5" />} 
+                  label="Email"
+                  color="bg-blue-500"
+                />
+              )}
+              {links.googleMaps && (
+                <QuickLinkButton 
+                  href={links.googleMaps} 
+                  icon={<MapIcon className="w-3.5 h-3.5" />} 
+                  label="Maps"
+                  color="bg-red-500"
+                />
+              )}
+            </div>
           </div>
           
-          {/* Quick Copy */}
-          <div className="mt-5 p-4 rounded-lg bg-bg-input">
-            <p className="text-sm font-medium text-text-secondary mb-3">Quick Copy</p>
-            <div className="space-y-2">
-              {[
-                { label: 'Email', value: builder.email },
-                { label: 'Phone', value: builder.phone },
-                { label: 'Website', value: builder.website },
-                { label: 'Address', value: builder.address }
-              ].map(({ label, value }) => (
-                <div key={label} className="flex items-center justify-between p-2 rounded bg-bg-primary">
-                  <span className="text-sm text-text-secondary truncate mr-2">{value}</span>
-                  <button 
-                    onClick={() => navigator.clipboard.writeText(value)}
-                    className="text-xs text-accent-blue hover:underline flex-shrink-0"
-                  >
-                    Copy
-                  </button>
-                </div>
-              ))}
+          {/* Social Media Section */}
+          <div>
+            <p className="text-xs font-medium text-text-muted uppercase tracking-wider mb-2 flex items-center gap-2">
+              <Share2 className="w-3 h-3" />
+              Social Media
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              <QuickLinkButton 
+                href={links.facebook} 
+                icon={<Facebook className="w-3.5 h-3.5" />} 
+                label="Facebook"
+                color="bg-[#1877F2]"
+              />
+              <QuickLinkButton 
+                href={links.linkedin} 
+                icon={<Linkedin className="w-3.5 h-3.5" />} 
+                label="LinkedIn"
+                color="bg-[#0A66C2]"
+              />
+              <QuickLinkButton 
+                href={links.instagram} 
+                icon={<Instagram className="w-3.5 h-3.5" />} 
+                label="Instagram"
+                color="bg-gradient-to-br from-purple-500 to-pink-500"
+              />
+            </div>
+          </div>
+          
+          {/* Builder Platforms Section */}
+          <div>
+            <p className="text-xs font-medium text-text-muted uppercase tracking-wider mb-2 flex items-center gap-2">
+              <Home className="w-3 h-3" />
+              Builder Platforms
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              <QuickLinkButton 
+                href={links.livabl} 
+                icon={<Search className="w-3.5 h-3.5" />} 
+                label="LIVABL"
+                color="bg-purple-600"
+              />
+              <QuickLinkButton 
+                href={links.tarion} 
+                icon={<Star className="w-3.5 h-3.5" />} 
+                label="Tarion"
+                color="bg-orange-500"
+              />
+              <QuickLinkButton 
+                href={links.homestars} 
+                icon={<Star className="w-3.5 h-3.5" />} 
+                label="HomeStars"
+                color="bg-yellow-500"
+              />
+              <QuickLinkButton 
+                href={links.ohba} 
+                icon={<Building2 className="w-3.5 h-3.5" />} 
+                label="OHBA"
+                color="bg-red-600"
+              />
+              <QuickLinkButton 
+                href={links.bbb} 
+                icon={<Search className="w-3.5 h-3.5" />} 
+                label="BBB"
+                color="bg-slate-600"
+              />
+              <QuickLinkButton 
+                href={links.newHomes} 
+                icon={<Home className="w-3.5 h-3.5" />} 
+                label="New Homes"
+                color="bg-teal-500"
+              />
+            </div>
+          </div>
+          
+          {/* Commercial Real Estate Section */}
+          <div>
+            <p className="text-xs font-medium text-text-muted uppercase tracking-wider mb-2 flex items-center gap-2">
+              <Building2 className="w-3 h-3" />
+              Commercial Real Estate
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <QuickLinkButton 
+                href={links.loopnet} 
+                icon={<Search className="w-3.5 h-3.5" />} 
+                label="LOOPNET"
+                color="bg-indigo-600"
+                fullWidth
+              />
+              <QuickLinkButton 
+                href={links.costar} 
+                icon={<Search className="w-3.5 h-3.5" />} 
+                label="CoStar"
+                color="bg-blue-700"
+                fullWidth
+              />
+            </div>
+          </div>
+          
+          {/* Research Section */}
+          <div>
+            <p className="text-xs font-medium text-text-muted uppercase tracking-wider mb-2 flex items-center gap-2">
+              <Search className="w-3 h-3" />
+              Research
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <QuickLinkButton 
+                href={links.google} 
+                icon={<Search className="w-3.5 h-3.5" />} 
+                label="Google"
+                color="bg-slate-600"
+                fullWidth
+              />
+              <QuickLinkButton 
+                href={links.googleNews} 
+                icon={<MessageSquare className="w-3.5 h-3.5" />} 
+                label="News"
+                color="bg-amber-600"
+                fullWidth
+              />
+              <QuickLinkButton 
+                href={links.reviews} 
+                icon={<Star className="w-3.5 h-3.5" />} 
+                label="Reviews"
+                color="bg-yellow-600"
+                fullWidth
+              />
+              <QuickLinkButton 
+                href={links.linkedinPresident} 
+                icon={<Linkedin className="w-3.5 h-3.5" />} 
+                label="CEO/President"
+                color="bg-[#0A66C2]"
+                fullWidth
+              />
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
