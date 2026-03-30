@@ -4,8 +4,9 @@ import {
   ChevronDown, ChevronUp, ExternalLink, Activity, Database, 
   RefreshCw, Globe, MessageCircle, MoreHorizontal, X, CheckCircle,
   ArrowUpRight, MessageSquare, Share2, FileText, Link2,
-  BarChart3, TrendingUp
+  BarChart3, TrendingUp, Edit2
 } from 'lucide-react';
+import UniversalEditModal from '../components/Common/UniversalEditModal';
 
 // API Base URL
 const API_BASE = 'http://localhost:8000/api';
@@ -81,7 +82,7 @@ const QuickLinkButton = ({ href, icon, label, color, fullWidth = false }) => {
 };
 
 // Agent Card Component
-const AgentCard = ({ agent, onQuickLinksToggle, isExpanded }) => {
+const AgentCard = ({ agent, onQuickLinksToggle, isExpanded, onEdit }) => {
   const links = generateCommercialQuickLinks(agent);
   
   // Generate initials
@@ -114,7 +115,16 @@ const AgentCard = ({ agent, onQuickLinksToggle, isExpanded }) => {
           
           {/* Info */}
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-slate-200 truncate">{agent.name}</h3>
+            <div className="flex items-start justify-between">
+              <h3 className="font-semibold text-slate-200 truncate">{agent.name}</h3>
+              <button
+                onClick={() => onEdit && onEdit(agent)}
+                className="p-1.5 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
+                title="Edit agent"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
             <p className="text-sm text-slate-400 truncate">{agent.company || 'Commercial Agent'}</p>
             <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
               {agent.verified && <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded">Verified</span>}
@@ -335,6 +345,8 @@ const CommercialAgentRecruiter = () => {
   // UI State
   const [expandedQuickLinks, setExpandedQuickLinks] = useState({});
   const [groupBy, setGroupBy] = useState('company');
+  const [editingAgent, setEditingAgent] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Load agents
   useEffect(() => {
@@ -413,6 +425,26 @@ const CommercialAgentRecruiter = () => {
       ...prev,
       [agentId]: !prev[agentId]
     }));
+  };
+
+  const handleEdit = (agent) => {
+    setEditingAgent(agent);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSave = (updatedAgent) => {
+    setAgents(prev => prev.map(a => 
+      a.id === updatedAgent.id ? { ...a, ...updatedAgent } : a
+    ));
+    
+    // Save to localStorage
+    const savedEdits = localStorage.getItem('commercial_agent_edits') || '{}';
+    const edits = JSON.parse(savedEdits);
+    edits[updatedAgent.id] = updatedAgent;
+    localStorage.setItem('commercial_agent_edits', JSON.stringify(edits));
+    
+    setIsEditModalOpen(false);
+    setEditingAgent(null);
   };
 
   if (loading) {
@@ -532,6 +564,7 @@ const CommercialAgentRecruiter = () => {
                   agent={agent} 
                   onQuickLinksToggle={toggleQuickLinks}
                   isExpanded={expandedQuickLinks[agent.id]}
+                  onEdit={handleEdit}
                 />
               ))}
             </div>
@@ -547,6 +580,19 @@ const CommercialAgentRecruiter = () => {
           <p className="text-slate-500 mt-1">Try adjusting your search or filters</p>
         </div>
       )}
+
+      {/* Edit Agent Modal */}
+      <UniversalEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingAgent(null);
+        }}
+        onSave={handleEditSave}
+        entity={editingAgent}
+        entityType="agent"
+        title="Edit Commercial Agent"
+      />
     </div>
   );
 };

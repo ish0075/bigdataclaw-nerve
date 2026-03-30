@@ -5,8 +5,9 @@ import {
   WifiOff, RefreshCw, Facebook, Instagram, Globe, MessageCircle,
   MoreHorizontal, X, CheckCircle, Clock, ArrowUpRight, 
   MessageSquare, Share2, FileText, Video, Link2, Mic,
-  ClipboardPlus, Briefcase, Star
+  ClipboardPlus, Briefcase, Star, Edit2
 } from 'lucide-react';
+import UniversalEditModal from '../components/Common/UniversalEditModal';
 import VoiceInput from '../components/Common/VoiceInput';
 import ObsidianClipForm, { mergeAgentWithClips, getObsidianClip } from '../components/Common/ObsidianClipper';
 
@@ -158,7 +159,7 @@ const cleanAgentName = (name) => {
 };
 
 // Agent Card Component - Builder Directory Style
-const AgentCard = ({ agent, onQuickLinksToggle, isExpanded, onClip }) => {
+const AgentCard = ({ agent, onQuickLinksToggle, isExpanded, onClip, onEdit }) => {
   // Merge with Obsidian clip data
   const mergedAgent = mergeAgentWithClips(agent);
   const links = generateAgentQuickLinks(mergedAgent);
@@ -200,11 +201,20 @@ const AgentCard = ({ agent, onQuickLinksToggle, isExpanded, onClip }) => {
                 <h3 className="font-semibold text-slate-200 truncate pr-2">{displayName}</h3>
                 <p className="text-sm text-slate-400 truncate">{cleanBrokerageName(agent.brokerage)}</p>
               </div>
-              {expBadge && (
-                <span className="px-2 py-0.5 bg-slate-700 text-slate-400 text-xs rounded-full flex-shrink-0">
-                  EXP
-                </span>
-              )}
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => onEdit && onEdit(agent)}
+                  className="p-1.5 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors"
+                  title="Edit agent"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                </button>
+                {expBadge && (
+                  <span className="px-2 py-0.5 bg-slate-700 text-slate-400 text-xs rounded-full flex-shrink-0">
+                    EXP
+                  </span>
+                )}
+              </div>
             </div>
             
             {/* Location & Title */}
@@ -753,6 +763,8 @@ const EXAgentRecruiterEnhanced = ({ initialViewMode = 'agents' }) => {
   const [expandedQuickLinks, setExpandedQuickLinks] = useState({});
   const [clipAgent, setClipAgent] = useState(null); // For Obsidian clip modal
   const [viewMode, setViewMode] = useState(initialViewMode); // 'agents' | 'brokerages'
+  const [editingAgent, setEditingAgent] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Check API health
   useEffect(() => {
@@ -1001,6 +1013,27 @@ const EXAgentRecruiterEnhanced = ({ initialViewMode = 'agents' }) => {
       a.id === updatedAgent.id ? { ...a, ...updatedAgent } : a
     ));
     setClipAgent(null);
+  };
+
+  const handleEdit = (agent) => {
+    setEditingAgent(agent);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSave = (updatedAgent) => {
+    // Update agents list
+    setAgents(prev => prev.map(a => 
+      a.id === updatedAgent.id ? { ...a, ...updatedAgent } : a
+    ));
+    
+    // Save to localStorage
+    const savedEdits = localStorage.getItem('agent_edits') || '{}';
+    const edits = JSON.parse(savedEdits);
+    edits[updatedAgent.id] = updatedAgent;
+    localStorage.setItem('agent_edits', JSON.stringify(edits));
+    
+    setIsEditModalOpen(false);
+    setEditingAgent(null);
   };
 
   const handleLoadFullJson = () => {
@@ -1394,6 +1427,7 @@ const EXAgentRecruiterEnhanced = ({ initialViewMode = 'agents' }) => {
                         onQuickLinksToggle={toggleQuickLinks}
                         isExpanded={expandedQuickLinks[agent.id]}
                         onClip={handleClip}
+                        onEdit={handleEdit}
                       />
                     ))}
                   </div>
@@ -1431,6 +1465,19 @@ const EXAgentRecruiterEnhanced = ({ initialViewMode = 'agents' }) => {
           onClose={() => setClipAgent(null)}
         />
       )}
+
+      {/* Edit Agent Modal */}
+      <UniversalEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingAgent(null);
+        }}
+        onSave={handleEditSave}
+        entity={editingAgent}
+        entityType="agent"
+        title="Edit Agent"
+      />
     </div>
   );
 };

@@ -2,8 +2,9 @@ import React, { useState } from 'react'
 import { 
   Users, Search, Filter, Phone, Mail, ExternalLink, Target, MapPin, DollarSign, 
   Building2, ChevronRight, Star, Download, Facebook, Linkedin, Instagram,
-  Globe, MoreHorizontal, ChevronUp, MessageCircle, MessageSquare
+  Globe, MoreHorizontal, ChevronUp, MessageCircle, MessageSquare, Edit2
 } from 'lucide-react'
+import UniversalEditModal from '../components/Common/UniversalEditModal'
 
 // Google "G" Icon
 const GoogleIcon = () => (
@@ -182,16 +183,39 @@ const QuickLinkButton = ({ href, icon, label, color }) => {
 }
 
 const BuyerMatcher = () => {
+  const [buyers, setBuyers] = useState(sampleBuyers)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [selectedBuyer, setSelectedBuyer] = useState(null)
   const [expandedQuickLinks, setExpandedQuickLinks] = useState({})
+  const [editingBuyer, setEditingBuyer] = useState(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   
-  const filteredBuyers = sampleBuyers.filter(buyer => {
+  const filteredBuyers = buyers.filter(buyer => {
     if (searchQuery && !buyer.entity.toLowerCase().includes(searchQuery.toLowerCase())) return false
     if (filterType !== 'all' && buyer.type !== filterType) return false
     return true
   })
+
+  const handleEdit = (buyer) => {
+    setEditingBuyer(buyer)
+    setIsEditModalOpen(true)
+  }
+
+  const handleEditSave = (updatedBuyer) => {
+    setBuyers(prev => prev.map(b => 
+      b.id === updatedBuyer.id ? { ...b, ...updatedBuyer } : b
+    ))
+    
+    // Save to localStorage
+    const savedEdits = localStorage.getItem('buyer_edits') || '{}'
+    const edits = JSON.parse(savedEdits)
+    edits[updatedBuyer.id] = updatedBuyer
+    localStorage.setItem('buyer_edits', JSON.stringify(edits))
+    
+    setIsEditModalOpen(false)
+    setEditingBuyer(null)
+  }
   
   const formatCurrency = (value) => {
     if (value >= 1e6) return `$${(value / 1e6).toFixed(1)}M`
@@ -277,7 +301,16 @@ const BuyerMatcher = () => {
             <div key={buyer.id} className="card p-5 hover:shadow-lg transition-all">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-text-primary truncate">{buyer.entity}</h3>
+                  <div className="flex items-start justify-between">
+                    <h3 className="font-semibold text-text-primary truncate">{buyer.entity}</h3>
+                    <button
+                      onClick={() => handleEdit(buyer)}
+                      className="p-1.5 hover:bg-bg-input rounded-lg text-text-secondary hover:text-text-primary transition-colors"
+                      title="Edit buyer"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                   <p className="text-sm text-text-secondary">{buyer.type}</p>
                   {buyer.contactName && (
                     <p className="text-xs text-text-muted mt-1">
@@ -285,7 +318,7 @@ const BuyerMatcher = () => {
                     </p>
                   )}
                 </div>
-                <div className="text-right">
+                <div className="text-right ml-2">
                   <p className={`text-2xl font-bold ${buyer.score >= 90 ? 'text-accent-green' : buyer.score >= 80 ? 'text-accent-yellow' : 'text-text-muted'}`}>
                     {buyer.score}
                   </p>
@@ -571,6 +604,19 @@ const BuyerMatcher = () => {
           </div>
         </div>
       )}
+
+      {/* Edit Buyer Modal */}
+      <UniversalEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false)
+          setEditingBuyer(null)
+        }}
+        onSave={handleEditSave}
+        entity={editingBuyer}
+        entityType="buyer"
+        title="Edit Buyer"
+      />
     </div>
   )
 }

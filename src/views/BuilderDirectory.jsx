@@ -3,8 +3,9 @@ import {
   HardHat, Search, MapPin, Phone, Mail, Globe, Facebook, Linkedin,
   ExternalLink, ChevronDown, ChevronUp, Building2, Filter,
   Download, X, Home, Star, Map as MapIcon, MessageCircle,
-  Instagram, MoreHorizontal, Share2, MessageSquare
+  Instagram, MoreHorizontal, Share2, MessageSquare, Edit2
 } from 'lucide-react'
+import UniversalEditModal from '../components/Common/UniversalEditModal'
 import { 
   ONTARIO_REGIONS, 
   getCitiesForRegion, 
@@ -403,7 +404,7 @@ const QuickLinkButton = ({ href, icon, label, color, fullWidth = false }) => {
 
 const BuilderDirectory = () => {
   // State - use imported JSON data (4,149 builders!)
-  const [builders] = useState(buildersData.length > 0 ? buildersData : SAMPLE_BUILDERS)
+  const [builders, setBuilders] = useState(buildersData.length > 0 ? buildersData : SAMPLE_BUILDERS)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterRegion, setFilterRegion] = useState('all')
   const [displayLimit, setDisplayLimit] = useState(100) // Limit initial display
@@ -411,6 +412,8 @@ const BuilderDirectory = () => {
   const [filterType, setFilterType] = useState('all')
   const [expandedGroups, setExpandedGroups] = useState({})
   const [expandedQuickLinks, setExpandedQuickLinks] = useState({})
+  const [editingBuilder, setEditingBuilder] = useState(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
   // Get available regions (Ontario only)
   const regions = useMemo(() => {
@@ -473,6 +476,26 @@ const BuilderDirectory = () => {
       ...prev,
       [builderId]: !prev[builderId]
     }))
+  }
+
+  const handleEdit = (builder) => {
+    setEditingBuilder(builder)
+    setIsEditModalOpen(true)
+  }
+
+  const handleEditSave = (updatedBuilder) => {
+    setBuilders(prev => prev.map(b => 
+      b.id === updatedBuilder.id ? { ...b, ...updatedBuilder } : b
+    ))
+    
+    // Save to localStorage
+    const savedEdits = localStorage.getItem('builder_edits') || '{}'
+    const edits = JSON.parse(savedEdits)
+    edits[updatedBuilder.id] = updatedBuilder
+    localStorage.setItem('builder_edits', JSON.stringify(edits))
+    
+    setIsEditModalOpen(false)
+    setEditingBuilder(null)
   }
 
   // Stats
@@ -698,6 +721,7 @@ const BuilderDirectory = () => {
                             builder={builder}
                             onQuickLinksToggle={toggleQuickLinks}
                             isExpanded={expandedQuickLinks[builder.id]}
+                            onEdit={handleEdit}
                           />
                         ))}
                       </div>
@@ -736,7 +760,7 @@ const BuilderDirectory = () => {
 }
 
 // Builder Card Component
-const BuilderCard = ({ builder, onQuickLinksToggle, isExpanded }) => {
+const BuilderCard = ({ builder, onQuickLinksToggle, isExpanded, onEdit }) => {
   const links = generateQuickLinks(builder)
   
   return (
@@ -747,7 +771,16 @@ const BuilderCard = ({ builder, onQuickLinksToggle, isExpanded }) => {
           {builder.logo}
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-text-primary truncate">{builder.name}</h3>
+          <div className="flex items-start justify-between">
+            <h3 className="font-semibold text-text-primary truncate">{builder.name}</h3>
+            <button
+              onClick={() => onEdit && onEdit(builder)}
+              className="p-1.5 hover:bg-bg-input rounded-lg text-text-secondary hover:text-text-primary transition-colors"
+              title="Edit builder"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
           <p className="text-sm text-text-secondary">{builder.type}</p>
           <div className="flex flex-wrap gap-1 mt-1">
             {builder.specialties?.slice(0, 2).map((spec, i) => (
@@ -1023,6 +1056,19 @@ const BuilderCard = ({ builder, onQuickLinksToggle, isExpanded }) => {
           </div>
         </div>
       )}
+
+      {/* Edit Builder Modal */}
+      <UniversalEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false)
+          setEditingBuilder(null)
+        }}
+        onSave={handleEditSave}
+        entity={editingBuilder}
+        entityType="builder"
+        title="Edit Builder"
+      />
     </div>
   )
 }
